@@ -1,0 +1,29 @@
+[project]
+name = "bubbletrack"
+version = "2.0.0"
+description = "Bubble radius fitting from high-speed camera images"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.5,<6.8",
+    "numpy",
+    "opencv-python",
+    "scikit-image",
+    "scipy",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pyinstaller"]
+
+[project.scripts]
+bubbletrack = "bubbletrack.app:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,39 @@
+"""Dark top navigation bar."""
+
+from __future__ import annotations
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+
+
+class HeaderBar(QWidget):
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setObjectName("HeaderBar")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 0, 16, 0)
+
+        # App title
+        title = QLabel("BubbleTrack v2.0")
+        title.setStyleSheet("font-size:15px; font-weight:bold;")
+        layout.addWidget(title)
+
+        # Status indicator
+        self._status_dot = QLabel("\u25CF")
+        self._status_dot.setStyleSheet("color:#22C55E; font-size:10px;")
+        layout.addWidget(self._status_dot)
+        self._status_label = QLabel("Ready")
+        self._status_label.setStyleSheet("color:#94A3B8; font-size:12px; font-weight:normal;")
+        layout.addWidget(self._status_label)
+
+        layout.addStretch()
+
+        # Settings button
+        self._settings_btn = QPushButton("\u2699")
+        self._settings_btn.setToolTip("Settings")
+        layout.addWidget(self._settings_btn)
+
+    def set_status(self, text: str, colour: str = "#22C55E"):
+        self._status_label.setText(text)
+        self._status_dot.setStyleSheet(f"color:{colour}; font-size:10px;")

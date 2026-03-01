@@ -1,0 +1,72 @@
+"""Tests for data export functions."""
+
+import os
+
+import numpy as np
+import pytest
+from scipy.io import loadmat
+
+from bubbletrack.model.export import export_r_data, export_rof_t_data
+
+
+class TestExportRData:
+    def test_creates_mat_file(self, tmp_path):
+        radius = np.array([10.0, 20.0, 30.0])
+        centers = np.array([[50, 60], [51, 61], [52, 62]], dtype=float)
+        edges = [np.array([[1, 2], [3, 4]]), None, np.array([[5, 6]])]
+        out = str(tmp_path / "dummy.mat")
+        export_r_data(out, radius, centers, edges)
+        assert os.path.exists(str(tmp_path / "R_data.mat"))
+
+    def test_round_trip(self, tmp_path):
+        radius = np.array([10.0, 20.0, 30.0])
+        centers = np.array([[50, 60], [51, 61], [52, 62]], dtype=float)
+        edges = [None, None, None]
+        out = str(tmp_path / "dummy.mat")
+        export_r_data(out, radius, centers, edges)
+        data = loadmat(str(tmp_path / "R_data.mat"))
+        np.testing.assert_array_almost_equal(data["Radius"].ravel(), radius)
+        np.testing.assert_array_almost_equal(data["CircleFitPar"], centers)
+
+
+class TestExportRofTData:
+    def _make_parabola(self, n=50, peak=25):
+        """Synthetic radius array with a clear parabolic peak."""
+        t = np.arange(1, n + 1, dtype=float)
+        return 100.0 - 0.5 * (t - peak) ** 2
+
+    def test_basic_export(self, tmp_path):
+        R = self._make_parabola()
+        ok, msg = export_rof_t_data(str(tmp_path / "x.mat"), R, 3.2, 1e6, 11)
+        assert ok
+        assert msg == ""
+        assert os.path.exists(str(tmp_path / "RofTdata.mat"))
+
+    def test_rmax_at_t_zero(self, tmp_path):
+        R = self._make_parabola()
+        export_rof_t_data(str(tmp_path / "x.mat"), R, 3.2, 1e6, 11)
+        data = loadmat(str(tmp_path / "RofTdata.mat"))
+        t = data["t"].ravel()
+        # t=0 should be at the peak
+        assert 0.0 in t
+
+    def test_left_boundary_error(self, tmp_path):
+        R = np.array([100.0, 90.0, 80.0])  # peak at index 0
+        ok, msg = export_rof_t_data(str(tmp_path / "x.mat"), R, 1.0, 1.0, 5)
+        assert not ok
+        assert "left boundary" in msg
+
+    def test_right_boundary_error(self, tmp_path):
+        R = np.array([80.0, 90.0, 100.0])  # peak at last index
+        ok, msg = export_rof_t_data(str(tmp_path / "x.mat"), R, 1.0, 1.0, 5)
+        assert not ok
+        assert "right boundary" in msg
+
+    def test_physical_units(self, tmp_path):
+        R = self._make_parabola(n=50, peak=25)
+        um2px, fps = 2.0, 1000.0
+        export_rof_t_data(str(tmp_path / "x.mat"), R, um2px, fps, 11)
+        data = loadmat(str(tmp_path / "RofTdata.mat"))
+        rmax = float(np.asarray(data["RmaxAll"]).flat[0])
+        # Rmax in pixels is 100.0, so in um it should be 200.0
+        assert abs(rmax - 200.0) < 1.0
