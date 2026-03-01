@@ -16,7 +16,7 @@ function createPostprocessingPanel(app)
     app.ExportButton = uibutton(app.ExporttoR_datamatPanel, 'push');
     app.ExportButton.ButtonPushedFcn = @(src,event)ExportButtonPushed(app,event);
     app.ExportButton.Position = [194 52 100 43];
-    app.ExportButton.Text = 'Export';
+    app.ExportButton.Text = 'Export R_data';
 
     % Create StoretoanotherpathButton
     app.StoretoanotherpathButton = uibutton(app.ExporttoR_datamatPanel, 'push');
@@ -51,6 +51,7 @@ function createPostprocessingPanel(app)
     app.FPSEditFieldLabel.HorizontalAlignment = 'right';
     app.FPSEditFieldLabel.Position = [14 41 28 22];
     app.FPSEditFieldLabel.Text = 'FPS';
+    app.FPSEditFieldLabel.Tooltip = 'Camera frame rate (frames per second)';
 
     % Create FPSEditField
     app.FPSEditField = uieditfield(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'numeric');
@@ -64,7 +65,8 @@ function createPostprocessingPanel(app)
     app.um2pxEditFieldLabel = uilabel(app.ConverttophysicalworldunitsasRofTdatamatPanel);
     app.um2pxEditFieldLabel.HorizontalAlignment = 'right';
     app.um2pxEditFieldLabel.Position = [1 11 41 22];
-    app.um2pxEditFieldLabel.Text = 'um2px';
+    app.um2pxEditFieldLabel.Text = [char(181) 'm/px'];
+    app.um2pxEditFieldLabel.Tooltip = 'Spatial calibration: micrometers per pixel';
 
     % Create um2pxEditField
     app.um2pxEditField = uieditfield(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'numeric');
@@ -78,13 +80,14 @@ function createPostprocessingPanel(app)
     app.ExportButton_2 = uibutton(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'push');
     app.ExportButton_2.ButtonPushedFcn = @(src,event)ExportButton_2Pushed(app,event);
     app.ExportButton_2.Position = [183 12 100 21];
-    app.ExportButton_2.Text = 'Export';
+    app.ExportButton_2.Text = 'Export RofT';
 
     % Create FitRmaxafterframeEditFieldLabel
     app.FitRmaxafterframeEditFieldLabel = uilabel(app.ConverttophysicalworldunitsasRofTdatamatPanel);
     app.FitRmaxafterframeEditFieldLabel.HorizontalAlignment = 'right';
     app.FitRmaxafterframeEditFieldLabel.Position = [140 41 121 22];
-    app.FitRmaxafterframeEditFieldLabel.Text = 'Fit Rmax after frame#';
+    app.FitRmaxafterframeEditFieldLabel.Text = 'Rmax fit window';
+    app.FitRmaxafterframeEditFieldLabel.Tooltip = 'Number of frames around peak for quadratic Rmax interpolation (odd number recommended)';
 
     % Create FitRmaxafterframeEditField
     app.FitRmaxafterframeEditField = uieditfield(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'numeric');

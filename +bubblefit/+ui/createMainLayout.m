@@ -15,7 +15,7 @@ function createMainLayout(app)
 
     % Create UIAxes_raw
     app.UIAxes_raw = uiaxes(app.GridLayout);
-    title(app.UIAxes_raw, 'Raw image (Red-detected bubble edge; Blue-fitting; Green: ROI)      Image # ')
+    title(app.UIAxes_raw, 'Raw Image (Red: edge  Blue: fit  Green: ROI)')
     xlabel(app.UIAxes_raw, 'X [px]')
     ylabel(app.UIAxes_raw, 'Y [px]')
     zlabel(app.UIAxes_raw, 'Z')
@@ -26,7 +26,7 @@ function createMainLayout(app)
     app.UIAxes_Rtcurve = uiaxes(app.GridLayout);
     title(app.UIAxes_Rtcurve, 'Radius - time curve')
     xlabel(app.UIAxes_Rtcurve, 'Frame No.')
-    ylabel(app.UIAxes_Rtcurve, 'Rad [px]')
+    ylabel(app.UIAxes_Rtcurve, 'Radius [px]')
     zlabel(app.UIAxes_Rtcurve, 'Z')
     app.UIAxes_Rtcurve.XMinorTick = 'on';
     app.UIAxes_Rtcurve.YMinorTick = 'on';

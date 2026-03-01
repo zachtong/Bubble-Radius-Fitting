@@ -16,6 +16,7 @@ function createPretuneTab(app)
     app.LEditFieldLabel.HorizontalAlignment = 'right';
     app.LEditFieldLabel.Position = [91 219 11 22];
     app.LEditFieldLabel.Text = 'L';
+    app.LEditFieldLabel.Tooltip = 'Left boundary of ROI (pixels)';
 
     % Create LEditField_L1
     app.LEditField_L1 = uieditfield(app.PretuneTab, 'numeric');
@@ -38,6 +39,7 @@ function createPretuneTab(app)
     app.LEditFieldLabel_2.HorizontalAlignment = 'right';
     app.LEditFieldLabel_2.Position = [144 220 25 22];
     app.LEditFieldLabel_2.Text = 'R';
+    app.LEditFieldLabel_2.Tooltip = 'Right boundary of ROI (pixels)';
 
     % Create LEditField_U1
     app.LEditField_U1 = uieditfield(app.PretuneTab, 'numeric');
@@ -52,6 +54,7 @@ function createPretuneTab(app)
     app.LEditFieldLabel_3.HorizontalAlignment = 'right';
     app.LEditFieldLabel_3.Position = [209 219 25 22];
     app.LEditFieldLabel_3.Text = 'U';
+    app.LEditFieldLabel_3.Tooltip = 'Upper boundary of ROI (pixels)';
 
     % Create LEditField_D1
     app.LEditField_D1 = uieditfield(app.PretuneTab, 'numeric');
@@ -66,12 +69,13 @@ function createPretuneTab(app)
     app.LEditFieldLabel_4.HorizontalAlignment = 'right';
     app.LEditFieldLabel_4.Position = [271 219 25 22];
     app.LEditFieldLabel_4.Text = 'D';
+    app.LEditFieldLabel_4.Tooltip = 'Down boundary of ROI (pixels)';
 
     % Create ImageEditFieldLabel
     app.ImageEditFieldLabel = uilabel(app.PretuneTab);
     app.ImageEditFieldLabel.HorizontalAlignment = 'right';
     app.ImageEditFieldLabel.Position = [9 255 52 22];
-    app.ImageEditFieldLabel.Text = 'Image  #';
+    app.ImageEditFieldLabel.Text = 'Image #';
 
     % Create ImageEditField
     app.ImageEditField = uieditfield(app.PretuneTab, 'numeric');
@@ -97,21 +101,25 @@ function createPretuneTab(app)
     % Create LeftEdgeOrNot
     app.LeftEdgeOrNot = uicheckbox(app.PretuneTab);
     app.LeftEdgeOrNot.Text = 'Left';
+    app.LeftEdgeOrNot.Tooltip = 'Check if bubble extends beyond the ROI boundary on this side';
     app.LeftEdgeOrNot.Position = [99 179 42 22];
 
     % Create RightEdgeOrNot
     app.RightEdgeOrNot = uicheckbox(app.PretuneTab);
     app.RightEdgeOrNot.Text = 'Right';
+    app.RightEdgeOrNot.Tooltip = 'Check if bubble extends beyond the ROI boundary on this side';
     app.RightEdgeOrNot.Position = [155 178 50 22];
 
     % Create TopEdgeOrNot
     app.TopEdgeOrNot = uicheckbox(app.PretuneTab);
     app.TopEdgeOrNot.Text = 'Top';
+    app.TopEdgeOrNot.Tooltip = 'Check if bubble extends beyond the ROI boundary on this side';
     app.TopEdgeOrNot.Position = [219 178 41 22];
 
     % Create DownEdgeOrNot
     app.DownEdgeOrNot = uicheckbox(app.PretuneTab);
     app.DownEdgeOrNot.Text = 'Down';
+    app.DownEdgeOrNot.Tooltip = 'Check if bubble extends beyond the ROI boundary on this side';
     app.DownEdgeOrNot.Position = [271 179 53 22];
 
     % Create BubblecrossgreenedgesLabel
@@ -128,6 +136,7 @@ function createPretuneTab(app)
     % Create SliderThreshold
     app.SliderThreshold = uislider(app.PretuneTab);
     app.SliderThreshold.ValueChangingFcn = @(src,event)SliderThresholdValueChanging(app,event);
+    app.SliderThreshold.Tooltip = 'Adjust binarization sensitivity (higher = larger bubble region)';
     app.SliderThreshold.Position = [11 132 137 3];
     app.SliderThreshold.Value = 50;
 
@@ -135,6 +144,7 @@ function createPretuneTab(app)
     app.SliderConnectedArea = uislider(app.PretuneTab);
     app.SliderConnectedArea.ValueChangedFcn = @(src,event)SliderConnectedAreaValueChanged(app,event);
     app.SliderConnectedArea.ValueChangingFcn = @(src,event)SliderConnectedAreaValueChanging(app,event);
+    app.SliderConnectedArea.Tooltip = 'Minimum connected area to keep (logarithmic scale)';
     app.SliderConnectedArea.Position = [181 132 140 3];
     app.SliderConnectedArea.Value = 50;
 
@@ -142,7 +152,7 @@ function createPretuneTab(app)
     app.RemovingfactorLabel = uilabel(app.PretuneTab);
     app.RemovingfactorLabel.HorizontalAlignment = 'right';
     app.RemovingfactorLabel.Position = [204 144 96 22];
-    app.RemovingfactorLabel.Text = 'Removing  factor';
+    app.RemovingfactorLabel.Text = 'Removing factor';
 
     % Create ThresholdEditFieldLabel
     app.ThresholdEditFieldLabel = uilabel(app.PretuneTab);

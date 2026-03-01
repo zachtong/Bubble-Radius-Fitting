@@ -23,6 +23,7 @@ function createAutomaticTab(app)
     app.LEditFieldLabel_5.HorizontalAlignment = 'right';
     app.LEditFieldLabel_5.Position = [269 183 25 22];
     app.LEditFieldLabel_5.Text = 'D';
+    app.LEditFieldLabel_5.Tooltip = 'Down boundary of ROI (pixels)';
 
     % Create LEditField_U3
     app.LEditField_U3 = uieditfield(app.AutomaticTab, 'numeric');
@@ -36,12 +37,14 @@ function createAutomaticTab(app)
     app.LEditFieldLabel_6.HorizontalAlignment = 'right';
     app.LEditFieldLabel_6.Position = [207 183 25 22];
     app.LEditFieldLabel_6.Text = 'U';
+    app.LEditFieldLabel_6.Tooltip = 'Upper boundary of ROI (pixels)';
 
     % Create LEditField_7Label
     app.LEditField_7Label = uilabel(app.AutomaticTab);
     app.LEditField_7Label.HorizontalAlignment = 'right';
     app.LEditField_7Label.Position = [89 183 11 22];
     app.LEditField_7Label.Text = 'L';
+    app.LEditField_7Label.Tooltip = 'Left boundary of ROI (pixels)';
 
     % Create LEditField_L3
     app.LEditField_L3 = uieditfield(app.AutomaticTab, 'numeric');
@@ -62,6 +65,7 @@ function createAutomaticTab(app)
     app.LEditFieldLabel_7.HorizontalAlignment = 'right';
     app.LEditFieldLabel_7.Position = [142 184 25 22];
     app.LEditFieldLabel_7.Text = 'R';
+    app.LEditFieldLabel_7.Tooltip = 'Right boundary of ROI (pixels)';
 
     % Create ROIButton_2
     app.ROIButton_2 = uibutton(app.AutomaticTab, 'push');
@@ -73,7 +77,7 @@ function createAutomaticTab(app)
     app.ImageEditField_2Label = uilabel(app.AutomaticTab);
     app.ImageEditField_2Label.HorizontalAlignment = 'right';
     app.ImageEditField_2Label.Position = [9 255 52 22];
-    app.ImageEditField_2Label.Text = 'Image  #';
+    app.ImageEditField_2Label.Text = 'Image #';
 
     % Create startNum
     app.startNum = uieditfield(app.AutomaticTab, 'numeric');
@@ -109,7 +113,14 @@ function createAutomaticTab(app)
     % Create RealtimeplayCheckBox
     app.RealtimeplayCheckBox = uicheckbox(app.AutomaticTab);
     app.RealtimeplayCheckBox.Text = 'Realtime play';
+    app.RealtimeplayCheckBox.Tooltip = 'Checked: show each frame (slower). Unchecked: batch mode with progress bar (faster)';
     app.RealtimeplayCheckBox.Position = [14 44 95 22];
     app.RealtimeplayCheckBox.Value = true;
+
+    % Create StopButton
+    app.StopButton = uibutton(app.AutomaticTab, 'push');
+    app.StopButton.ButtonPushedFcn = @(src,event)StopButtonPushed(app,event);
+    app.StopButton.Position = [120 35 80 30];
+    app.StopButton.Text = 'Stop';
 
 end

@@ -9,7 +9,7 @@ function createManualTab(app)
     app.ImageEditField_2Label_2 = uilabel(app.ManualTab);
     app.ImageEditField_2Label_2.HorizontalAlignment = 'right';
     app.ImageEditField_2Label_2.Position = [9 255 52 22];
-    app.ImageEditField_2Label_2.Text = 'Image  #';
+    app.ImageEditField_2Label_2.Text = 'Image #';
 
     % Create ImageEditField_2
     app.ImageEditField_2 = uieditfield(app.ManualTab, 'numeric');
@@ -27,8 +27,8 @@ function createManualTab(app)
 
     % Create ClickatleastthreepointsLabel
     app.ClickatleastthreepointsLabel = uilabel(app.ManualTab);
-    app.ClickatleastthreepointsLabel.Position = [21 111 139 22];
-    app.ClickatleastthreepointsLabel.Text = 'Click at least three points';
+    app.ClickatleastthreepointsLabel.Position = [21 111 250 22];
+    app.ClickatleastthreepointsLabel.Text = 'Click at least 3 points, press Enter to finish';
 
     % Create ClearandrefreshButton_3
     app.ClearandrefreshButton_3 = uibutton(app.ManualTab, 'push');

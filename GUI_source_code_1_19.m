@@ -8,10 +8,6 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         LoadexistingR_datamatButton   matlab.ui.control.Button
         ImagesPanel                   matlab.ui.container.Panel
         EditField                     matlab.ui.control.EditField
-        ImagebitdepthDropDown         matlab.ui.control.DropDown
-        ImagebitdepthDropDownLabel    matlab.ui.control.Label
-        ImageformatDropDown           matlab.ui.control.DropDown
-        ImageformatDropDownLabel      matlab.ui.control.Label
         ImageFolderButton             matlab.ui.control.Button
         PostprocessingPanel           matlab.ui.container.Panel
         ConverttophysicalworldunitsasRofTdatamatPanel  matlab.ui.container.Panel
@@ -82,8 +78,7 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         LEditFieldLabel_5             matlab.ui.control.Label
         LEditField_D3                 matlab.ui.control.NumericEditField
         FittingandPreviewButton_2     matlab.ui.control.Button
-        ModeDropDown                  matlab.ui.control.DropDown
-        ModeDropDownLabel             matlab.ui.control.Label
+        StopButton                    matlab.ui.control.Button
         UIAxes_binary                 matlab.ui.control.UIAxes
         UIAxes_Rtcurve                matlab.ui.control.UIAxes
         UIAxes_raw                    matlab.ui.control.UIAxes
@@ -96,7 +91,6 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         images;
         folderPath;
         ImgThr;
-        imageFormat = 'tiff'; % default
         gridx;
         gridy;
         par;
@@ -104,8 +98,7 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         Radius_backup;
         CircleFitPar;
         CircleXY;
-        ImgGrayScaleMax = 2^16-1;   % Double check image bit depth
-        ImgGrayScaleMaxuint8 = 255; % Do not change this line
+        ImgGrayScaleMax = 2^16-1;   % Auto-detected from image class
         % TiffDiffGauss;
         removingFactor = 90;
         BigOrSmall = 0;
@@ -118,8 +111,8 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         savePath2;
         saveFormat;
         ParameterTuneOrNot = 0;
-        stopiter;
-        realtimePlayOrNot;
+        stopiter = true;
+        realtimePlayOrNot = false;
         bubbleCrossEdges = [0 0 0 0];
         cur_img;
         cur_img_binary;
@@ -129,6 +122,16 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
     methods (Access = private)
 
+        %% Guard: ensure images are loaded before any processing
+        function ok = ensureImagesLoaded(app)
+            if isempty(app.images)
+                uialert(app.UIFigure, 'Please load an image folder first.', 'No Images');
+                ok = false;
+            else
+                ok = true;
+            end
+        end
+
         %% UPDATE ALL PARAMETERS
         function LoadParas(app)
             switch app.TabGroup.SelectedTab
@@ -137,7 +140,6 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
                     app.gridy = [app.LEditField_L1.Value,app.LEditField_R1.Value];
                     app.gridx = [app.LEditField_U1.Value,app.LEditField_D1.Value];
                     app.imageNo = app.ImageEditField.Value;
-                    app.imageFormat = app.ImageformatDropDown.Value;
                     app.removingFactor = bubblefit.imageproc.computeRemovingFactor(app.SliderConnectedArea.Value, app.gridx, app.gridy);
                     app.realtimePlayOrNot = app.RealtimeplayCheckBox.Value;
                     app.bubbleCrossEdges = [app.TopEdgeOrNot.Value, app.RightEdgeOrNot.Value, app.DownEdgeOrNot.Value, app.LeftEdgeOrNot.Value];
@@ -147,12 +149,11 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
                     app.bubbleCrossEdges = [app.TopEdgeOrNot.Value, app.RightEdgeOrNot.Value, app.DownEdgeOrNot.Value, app.LeftEdgeOrNot.Value];
 
                 case app.AutomaticTab
-                    %app.ImgThr = app.ImagethresholdEditField_2.Value;
+                    app.ImgThr = 1 - app.SliderThreshold.Value/100;
                     app.gridy = [app.LEditField_L3.Value,app.LEditField_R3.Value];
                     app.gridx = [app.LEditField_U3.Value,app.LEditField_D3.Value];
                     app.imageNo = app.startNum.Value;
                     app.imageTotalNum = app.endNum.Value;
-                    app.imageFormat = app.ImageformatDropDown.Value;
                     app.removingFactor = bubblefit.imageproc.computeRemovingFactor(app.SliderConnectedArea.Value, app.gridx, app.gridy);
                     app.realtimePlayOrNot = app.RealtimeplayCheckBox.Value;
                     app.bubbleCrossEdges = [app.TopEdgeOrNot.Value, app.RightEdgeOrNot.Value, app.DownEdgeOrNot.Value, app.LeftEdgeOrNot.Value];
@@ -306,10 +307,15 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         end
 
         function clearAndRefreshData(app)
+            answer = uiconfirm(app.UIFigure, ...
+                'Clear all fitting results? (A backup is kept in memory)', ...
+                'Confirm Clear', 'Options', {'Clear', 'Cancel'}, 'DefaultOption', 2);
+            if ~strcmp(answer, 'Clear'), return; end
+
             app.Radius_backup = app.Radius;
             app.Radius = zeros(size(app.Radius)) - 1;
             app.CircleFitPar = zeros(length(app.Radius),2);
-            app.CircleXY = [];
+            app.CircleXY = {};
             cla(app.UIAxes_Rtcurve);
         end
 
@@ -330,30 +336,52 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
         % Callback function: EditField, ImageFolderButton
         function ImageFileButtonPushed(app, event)
-            app.imageFormat = app.ImageformatDropDown.Value;
             app.folderPath = uigetdir;
+            if isequal(app.folderPath, 0), return; end
             app.EditField.Value = app.folderPath;
-    
-            % ----------- Zach: Support Mac OS -------------------------------------
-            % temp = [app.folderPath,'\*.',app.imageFormat];
-            temp = fullfile(app.folderPath, ['*.',app.imageFormat]); 
 
-            files = dir(temp); % Double check image file type
+            % Auto-detect image format: scan for all supported types
+            supportedExts = {'tiff','tif','png','jpg','jpeg','bmp'};
+            files = [];
+            for k = 1:length(supportedExts)
+                found = dir(fullfile(app.folderPath, ['*.' supportedExts{k}]));
+                if ~isempty(found)
+                    files = found;
+                    break;
+                end
+            end
+
+            % Sort files naturally by name
+            [~, sortIdx] = sort({files.name});
+            files = files(sortIdx);
+
             app.images = cell(length(files),1);
             for i = 1:length(files)
-                % app.images{i} = [app.folderPath,'\',files(i).name];
                 app.images{i} = fullfile(app.folderPath, files(i).name);
             end
-            % ---------------------------------------------------------------------
 
-            if size(app.images,1) == 0
-                errordlg('No valid images loaded, please check image format!', 'Error');
+            if isempty(files)
+                errordlg('No valid images found (supported: tiff, tif, png, jpg, jpeg, bmp)', 'Error');
                 return
             end
 
-            % Initialization
+            % Clear old data from previous session
             app.Radius = zeros(1,length(files))-1;
+            app.CircleFitPar = zeros(length(files),2);
+            app.CircleXY = {};
+            cla(app.UIAxes_Rtcurve);
+            cla(app.UIAxes_raw);
+            cla(app.UIAxes_binary);
             temp_image = imread(app.images{1});
+
+            % Auto-detect bit depth from image class
+            switch class(temp_image)
+                case 'uint8',  app.ImgGrayScaleMax = 255;
+                case 'uint16', app.ImgGrayScaleMax = 65535;
+                case 'uint32', app.ImgGrayScaleMax = 2^32-1;
+                otherwise,     app.ImgGrayScaleMax = double(max(temp_image(:)));
+            end
+
             app.LEditField_R1.Value = size(temp_image,2);
             app.LEditField_R3.Value = size(temp_image,2);
             app.LEditField_D1.Value = size(temp_image,1) ;
@@ -372,57 +400,25 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
             app.UIAxes_Rtcurve.XTick = xTicks;
             % Y
             ylabel(app.UIAxes_Rtcurve, 'Radius [Pixels]');
-            egImageSize = imread(app.images{1});
 
-            app.UIAxes_Rtcurve.YLim = [0,max(size(egImageSize))* 0.7];
-            YTicks = 1:20:max(size(egImageSize)/2);
+            app.UIAxes_Rtcurve.YLim = [0,max(size(temp_image))* 0.7];
+            YTicks = 1:20:max(size(temp_image)/2);
             app.UIAxes_Rtcurve.YTick = YTicks;
 
-        end
-
-        % Value changed function: ModeDropDown
-        function ModeDropDownValueChanged(app, event)
-            mode = app.ModeDropDown.Value;
-            switch mode
-                case 'Pre-tune'
-                    app.TabGroup.SelectedTab = app.PretuneTab;
-                case 'Manual'
-                    app.TabGroup.SelectedTab = app.ManualTab;
-                    % LoadParasBasedonPretune_mode2(app); replaced by the
-                    % load_tuned_parameters function.
-                case 'Automatic'
-                    app.TabGroup.SelectedTab = app.AutomaticTab;
-                    % LoadParasBasedonPretune_mode3(app); replaced by the
-                    % load_tuned_parameters function.
-            end
-        end
-
-        % Selection change function: TabGroup
-        function TabGroupSelectionChanged(app, event)
-
-
-
-            selectedMode = app.TabGroup.SelectedTab;
-            app.ModeDropDown.Value = selectedMode.Title;
-
-            % We don't do this anymore, this function was replaced by the
-            % load_tuned_parameters function.
-            % if selectedMode == app.PretuneTab
-            %
-            % elseif selectedMode == app.ManualTab
-            %     LoadParasBasedonPretune_mode2(app);
-            % elseif selectedMode == app.AutomaticTab
-            %     LoadParasBasedonPretune_mode3(app);
-            % end
+            % Display first image immediately after loading
+            app.imageNo = 1;
+            imshow(temp_image, 'Parent', app.UIAxes_raw, 'DisplayRange', [0, app.ImgGrayScaleMax]);
+            title(app.UIAxes_raw, 'Image # 1');
 
         end
 
         % Button pushed function: ROIButton
         function ROIButtonPushed(app, event)
+            if ~ensureImagesLoaded(app), return; end
             % Update para
             LoadParas(app);
             % ROI modify and display binary image
-            GetCurrentbinaryImage(app); % You will get an binary image -- app.TiffDiffGauss
+            GetCurrentbinaryImage(app);
             imshow(app.cur_img,'Parent', app.UIAxes_raw);
             % ROIfigureHandle = figure("Name",'Modify ROI','Position', [800, 500, 600, 400]);
             % imshow(app.cur_img);
@@ -468,10 +464,11 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
         % Button pushed function: FittingandPreviewButton
         function FittingandPreviewButtonPushed(app, event)
+            if ~ensureImagesLoaded(app), return; end
             % Update para
             LoadParas(app);
             % Display
-            GetCurrentbinaryImage(app); % You will get an binary image -- app.cur_img
+            GetCurrentbinaryImage(app);
             cla(app.UIAxes_raw);
             deleteOldPoints(app);
             PreviewSingleImage(app);
@@ -481,18 +478,26 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
         % Button pushed function: ROIButton_2
         function ROIButton_2Pushed(app, event)
+            if ~ensureImagesLoaded(app), return; end
 
             % Update para
             LoadParas(app);
 
             % ROI modify and display binary image
             GetCurrentbinaryImage(app); % You will get an binary image -- app.cur_img
-            imshow(uint8(app.cur_img),'Parent', app.UIAxes_binary);
-            ROIfigureHandle = figure("Name",'Modify ROI','Position', [800, 500, 600, 400]);
-            imshow(uint8(app.cur_img));
-            [app.gridy(1),app.gridx(1)] = ginput(1);
-            [app.gridy(2),app.gridx(2)] = ginput(1);
+            imshow(app.cur_img,'Parent', app.UIAxes_raw);
+
+            % Use drawrectangle (same as Pre-tune ROI)
+            scale_factor = 2.5;
+            resized_img = imresize(app.cur_img, scale_factor, 'bicubic');
+            ROIfigureHandle = figure('Name', 'Modify ROI', 'Position', [800, 500, 600, 400]);
+            imshow(resized_img);
+            h = drawrectangle;
+            pos = h.Position / scale_factor;
             close(ROIfigureHandle);
+
+            app.gridy = [pos(1),pos(1)+pos(3)];
+            app.gridx = [pos(2),pos(2)+pos(4)];
 
             % Adjust ROI domain
             if app.gridx(1)<1, app.gridx(1) = 1; end
@@ -505,16 +510,11 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
             app.LEditField_U3.Value = app.gridx(1);
             app.LEditField_D3.Value = app.gridx(2);
 
-            % try
-            %     app.cur_img( temp111(2):temp222(2), temp111(1):temp222(1) ) =  255;
-            %     figure, imshow(uint8(app.cur_img));
-            % catch
-            % end
-
         end
 
         % Button pushed function: FittingandPreviewButton_2
         function FittingandPreviewButton_2Pushed(app, event)
+            if ~ensureImagesLoaded(app), return; end
 
             % Update para
             LoadParas(app);
@@ -523,16 +523,9 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
             if app.realtimePlayOrNot
                 for i = app.startNum.Value : app.endNum.Value
-
-                    % % Update para
-                    % LoadParas(app);
-                    %
-                    %
-                    % pause(1e-4)
-                    % if app.stopiter
-                    %     break
-                    %
-                    % end
+                    drawnow;  % Process UI events (Stop button click)
+                    if ~app.stopiter, break; end
+                    app.imageNo = i;
 
                     GetCurrentbinaryImage(app);
                     deleteOldPoints(app);
@@ -540,22 +533,22 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
                     plotNewPoints(app);
 
                     pause(0.1)
-
-                    app.imageNo = app.imageNo+1;
                 end
 
             else % no need to wait for point-wise display
                 d = uiprogressdlg(app.UIFigure,'Title','Please wait...','Message','Processing...','Cancelable','on');
+                totalFrames = max(app.endNum.Value - app.startNum.Value, 1);
 
                 for i = app.startNum.Value : app.endNum.Value
+                    drawnow;
+                    if ~app.stopiter, break; end
+                    app.imageNo = i;
 
                     GetCurrentbinaryImage(app);
                     PreviewSingleImage(app);
-                    app.imageNo = app.imageNo+1;
 
-                    d.Value = ceil(i-app.startNum.Value)/(app.endNum.Value -app.startNum.Value);
+                    d.Value = (i - app.startNum.Value) / totalFrames;
                     d.Message = sprintf('Processing... %d%% Finished!', floor(d.Value*100));
-                    drawnow limitrate;
                     if d.CancelRequested
                         break;
                     end
@@ -565,14 +558,27 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
                 close(d);
             end
 
-
+            % Completion notice
+            nProcessed = app.imageNo - app.startNum.Value + 1;
+            uialert(app.UIFigure, sprintf('Processed %d frames (# %d to %d).', ...
+                nProcessed, app.startNum.Value, app.imageNo), ...
+                'Processing Complete', 'Icon', 'success');
 
         end
 
         % Button pushed function: ExportButton
         function ExportButtonPushed(app, event)
             LoadParas(app);
+            if isempty(app.savePath)
+                uialert(app.UIFigure, 'Please set an export path first (Use default path or Store to another path).', 'No Export Path');
+                return;
+            end
+            if all(app.Radius == -1)
+                uialert(app.UIFigure, 'No fitting results to export. Run fitting first.', 'No Data');
+                return;
+            end
             bubblefit.export.exportRData(app.savePath, app.Radius, app.CircleFitPar, app.CircleXY);
+            uialert(app.UIFigure, ['Saved to: ' app.savePath], 'Export Successful', 'Icon', 'success');
         end
 
         % Button pushed function: ClearandrefreshButton
@@ -582,9 +588,10 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
         % Button pushed function: ManuallyselectbubbleedgepointsButton
         function ManuallyselectbubbleedgepointsButtonPushed(app, event)
+            if ~ensureImagesLoaded(app), return; end
             % Update para
             LoadParas(app);
-            ManualfigureHandle = figure("Name",'Select at least 3 points','Position', [500, 500, 1000, 1000]);
+            ManualfigureHandle = figure("Name",'Click points on bubble edge, press Enter to finish','Position', [500, 500, 1000, 1000]);
             
             % Define scale factor, read original image, and resize it
             scale_factor = 2.5;
@@ -620,10 +627,9 @@ close(ManualfigureHandle);
 XY = XY / scale_factor;
 
 if size(XY, 1) < 3
-    error('Please select at least 3 points!');
+    uialert(app.UIFigure, 'Please select at least 3 points.', 'Not Enough Points');
+    return;
 end
-
-
 
             try
                 currentPar=bubblefit.CircleFitByTaubin(XY);
@@ -650,6 +656,10 @@ end
             viscircles(app.UIAxes_raw,[currentPar(2),currentPar(1)],currentPar(3),'Color','b');
             plot(XY(:,2),XY(:,1),'r.','Parent', app.UIAxes_raw);
 
+            % Auto-advance to next frame
+            app.imageNo = app.imageNo + 1;
+            app.ImageEditField_2.Value = app.imageNo;
+
         end
 
         % Value changed function: FPSEditField
@@ -667,10 +677,16 @@ end
         % Button pushed function: ExportButton_2
         function ExportButton_2Pushed(app, event)
             LoadParas(app);
+            if isempty(app.savePath)
+                uialert(app.UIFigure, 'Please set an export path first (Use default path or Store to another path).', 'No Export Path');
+                return;
+            end
             [success, msg] = bubblefit.export.exportRofTData( ...
                 app.savePath, app.Radius, app.um2px, app.FPS, app.Rmax_Fit_Length);
             if ~success
                 uialert(app.UIFigure, msg, 'Error');
+            else
+                uialert(app.UIFigure, ['RofT data saved to: ' fileparts(app.savePath)], 'Export Successful', 'Icon', 'success');
             end
         end
 
@@ -710,6 +726,12 @@ end
             % Load para
             LoadParas(app);
 
+            % Show loaded parameter summary
+            app.LoadtunedparametersButton.Text = sprintf( ...
+                'Loaded (Thr=%.0f, RF=%.0f, ROI=%dx%d)', ...
+                app.SliderThreshold.Value, app.SliderConnectedArea.Value, ...
+                round(app.LEditField_R3.Value - app.LEditField_L3.Value), ...
+                round(app.LEditField_D3.Value - app.LEditField_U3.Value));
 
         end
 
@@ -728,25 +750,19 @@ end
             app.stopiter=false;
         end
 
-        % Value changed function: ImagebitdepthDropDown
-        function ImagebitdepthDropDownValueChanged(app, event)
-            app.ImgGrayScaleMax = 2^str2double(app.ImagebitdepthDropDown.Value) - 1;
-        end
-
         % Button pushed function: LoadexistingR_datamatButton
         function LoadexistingR_datamatButtonPushed(app, event)
 
             % Open a dialog box for the user to select a .mat file
-            [fileName, app.folderPath] = uigetfile('*.mat', 'Select the R_data.mat file');
-            
+            [fileName, matPath] = uigetfile('*.mat', 'Select the R_data.mat file');
+
             % Check if the user cancelled the selection
-            if isequal(fileName, 0) || isequal(app.folderPath, 0)
-                disp('User cancelled the file selection.');
-                return; % Exit the function
+            if isequal(fileName, 0) || isequal(matPath, 0)
+                return;
             end
 
-            % Construct the full path to the selected file
-            fullFilePath = fullfile(app.folderPath, fileName);
+            % Construct the full path (do NOT overwrite app.folderPath)
+            fullFilePath = fullfile(matPath, fileName);
 
 
             try
@@ -761,17 +777,12 @@ end
             app.CircleFitPar = Rt.CircleCenterSave;
             app.CircleXY = Rt.CircleEdgePtSave;
             app.Radius = Rt.CircleR;
-            app.imageNo = 1:1:length(app.Radius);
+            app.imageNo = 1;
 
-            % Update para
-            % LoadParas(app);
-
-            % Display
-            %GetCurrentbinaryImage(app); % You will get an binary image -- app.TiffDiffGauss
-            cla(app.UIAxes_raw);
-            deleteOldPoints(app);
-            %PreviewSingleImage(app);
-            plotNewPoints(app);
+            % Display all loaded radius data
+            cla(app.UIAxes_Rtcurve);
+            hold(app.UIAxes_Rtcurve, 'on');
+            plot(1:length(app.Radius), app.Radius, 'r+', 'Parent', app.UIAxes_Rtcurve);
 
         end
 
@@ -783,12 +794,13 @@ end
 
         % Value changed function: ImageEditField
         function ImageEditFieldValueChanged(app, event)
-            value = app.ImageEditField.Value;
+            if ~ensureImagesLoaded(app), return; end
             realtimeDisplay_connectedArea(app,app.SliderConnectedArea.Value);
         end
 
         % Value changing function: SliderThreshold
         function SliderThresholdValueChanging(app, event)
+            if isempty(app.images), return; end
             changingValue = event.Value;
             app.ThresholdEditField.Value = changingValue;
             realtimeDisplay_threshold(app,changingValue);
@@ -796,6 +808,7 @@ end
 
         % Value changed function: ThresholdEditField
         function ThresholdEditFieldValueChanged(app, event)
+            if ~ensureImagesLoaded(app), return; end
             value = app.ThresholdEditField.Value;
             app.SliderThreshold.Value = value;
             realtimeDisplay_threshold(app, value);
@@ -810,12 +823,14 @@ end
 
         % Value changed function: SliderConnectedArea
         function SliderConnectedAreaValueChanged(app, event)
+            if ~ensureImagesLoaded(app), return; end
             value = app.SliderConnectedArea.Value;
             realtimeDisplay_connectedArea(app,value);
         end
 
         % Value changed function: RemovingFactorEditField
         function RemovingFactorEditFieldValueChanged(app, event)
+            if ~ensureImagesLoaded(app), return; end
             value = app.RemovingFactorEditField.Value;
             app.SliderConnectedArea.Value = value;
             realtimeDisplay_connectedArea(app, value);
@@ -831,24 +846,9 @@ end
             % Create main layout, axes
             bubblefit.ui.createMainLayout(app);
 
-            % Create Mode dropdown
-            app.ModeDropDownLabel = uilabel(app.GridLayout);
-            app.ModeDropDownLabel.HorizontalAlignment = 'right';
-            app.ModeDropDownLabel.Layout.Row = 6;
-            app.ModeDropDownLabel.Layout.Column = 1;
-            app.ModeDropDownLabel.Text = 'Mode';
-
-            app.ModeDropDown = uidropdown(app.GridLayout);
-            app.ModeDropDown.Items = {'Pre-tune', 'Manual', 'Automatic'};
-            app.ModeDropDown.ValueChangedFcn = app.createCallbackFcn(@ModeDropDownValueChanged, true);
-            app.ModeDropDown.Layout.Row = 6;
-            app.ModeDropDown.Layout.Column = [2 3];
-            app.ModeDropDown.Value = 'Pre-tune';
-
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
-            app.TabGroup.SelectionChangedFcn = app.createCallbackFcn(@TabGroupSelectionChanged, true);
-            app.TabGroup.Layout.Row = [7 10];
+            app.TabGroup.Layout.Row = [6 10];
             app.TabGroup.Layout.Column = [1 5];
 
             % Create tabs
