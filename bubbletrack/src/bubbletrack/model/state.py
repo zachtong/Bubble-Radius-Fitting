@@ -33,6 +33,12 @@ class AppState:
     # Morphological closing radius (0 = skip)
     removing_obj_radius: int = 0
 
+    # Advanced filters (0 = disabled)
+    gaussian_sigma: float = 0.0
+    clahe_clip: float = 0.0
+    closing_radius: int = 0
+    opening_radius: int = 0
+
     # Results arrays — allocated after folder is loaded
     radius: np.ndarray | None = None          # (N,) float, -1 = unprocessed
     circle_fit_par: np.ndarray | None = None   # (N, 2) [row_c, col_c]

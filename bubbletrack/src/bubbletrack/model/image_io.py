@@ -56,6 +56,9 @@ def load_and_normalize(
     sensitivity: float,
     gridx: tuple[int, int],
     gridy: tuple[int, int],
+    *,
+    gaussian_sigma: float = 0.0,
+    clahe_clip: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load an image, normalise to [0,1], adaptive-threshold, and extract ROI.
 
@@ -110,6 +113,15 @@ def load_and_normalize(
         raw_8 = (raw / 256).astype(np.uint8)
     else:
         raw_8 = raw.astype(np.uint8)
+
+    # Pre-threshold filters
+    if gaussian_sigma > 0:
+        ksize = int(np.ceil(gaussian_sigma * 3)) * 2 + 1
+        raw_8 = cv2.GaussianBlur(raw_8, (ksize, ksize), gaussian_sigma)
+
+    if clahe_clip > 0:
+        clahe = cv2.createCLAHE(clipLimit=clahe_clip, tileGridSize=(8, 8))
+        raw_8 = clahe.apply(raw_8)
 
     # MATLAB: imbinarize(img, 'adaptive', 'Sensitivity', s)
     # OpenCV adaptiveThreshold: pixel > (mean - C) => 255

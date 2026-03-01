@@ -38,6 +38,10 @@ class BatchWorker(QThread):
         removing_factor_slider: int,
         bubble_cross_edges: list[bool],
         removing_obj_radius: int = 0,
+        gaussian_sigma: float = 0.0,
+        clahe_clip: float = 0.0,
+        closing_radius: int = 0,
+        opening_radius: int = 0,
     ):
         super().__init__()
         self._images = images
@@ -49,6 +53,10 @@ class BatchWorker(QThread):
         self._rf_slider = removing_factor_slider
         self._edges = bubble_cross_edges
         self._obj_radius = removing_obj_radius
+        self._gaussian_sigma = gaussian_sigma
+        self._clahe_clip = clahe_clip
+        self._closing_radius = closing_radius
+        self._opening_radius = opening_radius
         self._stop = False
 
     def request_stop(self):
@@ -65,11 +73,15 @@ class BatchWorker(QThread):
                 _, _, _, binary_roi = load_and_normalize(
                     self._images[i], self._sensitivity,
                     self._gridx, self._gridy,
+                    gaussian_sigma=self._gaussian_sigma,
+                    clahe_clip=self._clahe_clip,
                 )
                 processed, edge_xy = detect_bubble(
                     binary_roi, self._edges, rf,
                     self._gridx, self._gridy,
                     self._obj_radius,
+                    opening_radius=self._opening_radius,
+                    closing_radius=self._closing_radius,
                 )
                 if edge_xy.shape[0] >= 3:
                     rc, cc, radius = circle_fit_taubin(edge_xy)

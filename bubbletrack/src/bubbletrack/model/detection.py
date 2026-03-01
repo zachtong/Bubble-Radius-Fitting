@@ -86,6 +86,9 @@ def detect_bubble(
     gridx: tuple[int, int],
     gridy: tuple[int, int],
     removing_obj_radius: int = 0,
+    *,
+    opening_radius: int = 0,
+    closing_radius: int = 0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Detect a bubble boundary in *binary_roi*.
 
@@ -118,9 +121,15 @@ def detect_bubble(
     # Remove small connected white areas
     expanded = morphology.remove_small_objects(expanded, min_size=removing_factor)
 
-    # Optional morphological closing
-    if removing_obj_radius > 1:
-        selem = morphology.disk(removing_obj_radius)
+    # Optional morphological opening (remove bead spurs on edges)
+    if opening_radius > 0:
+        selem = morphology.disk(opening_radius)
+        expanded = morphology.opening(expanded, selem)
+
+    # Optional morphological closing (fill small holes, smooth boundary)
+    effective_closing = closing_radius if closing_radius > 0 else removing_obj_radius
+    if effective_closing > 1:
+        selem = morphology.disk(effective_closing)
         expanded = morphology.closing(expanded, selem)
         expanded = ndimage.binary_fill_holes(expanded)
 

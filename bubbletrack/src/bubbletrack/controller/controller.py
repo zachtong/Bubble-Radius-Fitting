@@ -54,6 +54,7 @@ class AppController:
         pt.fit_clicked.connect(self._on_pretune_fit)
         pt.select_roi_clicked.connect(self._on_select_roi)
         pt.frame_selected.connect(self._on_tab_frame_selected)
+        pt.filters_changed.connect(self._on_filters_changed)
 
         # Manual
         mt = lp.manual_tab
@@ -151,6 +152,8 @@ class AppController:
                 self.state.img_thr,
                 self.state.gridx,
                 self.state.gridy,
+                gaussian_sigma=self.state.gaussian_sigma,
+                clahe_clip=self.state.clahe_clip,
             )
             self.state.cur_img = cur_img
             self.state.cur_img_binary_roi = binary_roi
@@ -206,6 +209,14 @@ class AppController:
         self.state.removing_factor = v
         self._preview_detection()
 
+    def _on_filters_changed(self):
+        p = self.w.left_panel.pretune_tab.get_filter_params()
+        self.state.gaussian_sigma = p["gaussian_sigma"]
+        self.state.clahe_clip = p["clahe_clip"]
+        self.state.closing_radius = p["closing_radius"]
+        self.state.opening_radius = p["opening_radius"]
+        self._preview_detection()
+
     def _on_edges_changed(self):
         self.state.bubble_cross_edges = self.w.left_panel.pretune_tab.get_edge_flags()
         self._preview_detection()
@@ -226,11 +237,15 @@ class AppController:
             _, _, _, binary_roi = load_and_normalize(
                 self.state.images[idx], self.state.img_thr,
                 self.state.gridx, self.state.gridy,
+                gaussian_sigma=self.state.gaussian_sigma,
+                clahe_clip=self.state.clahe_clip,
             )
             processed, _ = detect_bubble(
                 binary_roi, self.state.bubble_cross_edges, rf,
                 self.state.gridx, self.state.gridy,
-                0,  # skip morphological closing for preview speed
+                0,  # skip legacy morphological closing for preview speed
+                opening_radius=self.state.opening_radius,
+                closing_radius=self.state.closing_radius,
             )
             self.w.binary_panel.set_image(processed)
         except Exception:
@@ -269,11 +284,15 @@ class AppController:
             _, _, _, binary_roi = load_and_normalize(
                 self.state.images[idx], self.state.img_thr,
                 self.state.gridx, self.state.gridy,
+                gaussian_sigma=self.state.gaussian_sigma,
+                clahe_clip=self.state.clahe_clip,
             )
             processed, edge_xy = detect_bubble(
                 binary_roi, self.state.bubble_cross_edges, rf,
                 self.state.gridx, self.state.gridy,
                 self.state.removing_obj_radius,
+                opening_radius=self.state.opening_radius,
+                closing_radius=self.state.closing_radius,
             )
 
             self.w.binary_panel.set_image(processed)
@@ -391,6 +410,10 @@ class AppController:
             removing_factor_slider=self.state.removing_factor,
             bubble_cross_edges=self.state.bubble_cross_edges,
             removing_obj_radius=self.state.removing_obj_radius,
+            gaussian_sigma=self.state.gaussian_sigma,
+            clahe_clip=self.state.clahe_clip,
+            closing_radius=self.state.closing_radius,
+            opening_radius=self.state.opening_radius,
         )
         self._worker.progress.connect(self._on_auto_progress)
         self._worker.frame_done.connect(self._on_auto_frame_done)

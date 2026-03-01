@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QSpinBox, QVBoxLayout, QWidget,
 )
 
-from bubbletrack.ui.widgets import SliderInput
+from bubbletrack.ui.widgets import CollapsibleSection, SliderInput, ToggleSliderInput
 
 
 class PreTuneTab(QWidget):
@@ -18,6 +18,7 @@ class PreTuneTab(QWidget):
     threshold_changed = pyqtSignal(float)
     removing_factor_changed = pyqtSignal(int)
     edges_changed = pyqtSignal()
+    filters_changed = pyqtSignal()
     fit_clicked = pyqtSignal()
     select_roi_clicked = pyqtSignal()
     frame_selected = pyqtSignal(int)  # 0-indexed frame number
@@ -88,6 +89,29 @@ class PreTuneTab(QWidget):
             self._edge_checks.append(cb)
         layout.addWidget(edge_group)
 
+        # -- Advanced Filters (collapsible) --
+        filters_section = CollapsibleSection("Advanced Filters", collapsed=True)
+
+        self._gauss_slider = ToggleSliderInput(
+            "Gauss Blur", 0.5, 20, 3.0, 0.5, decimals=1,
+        )
+        self._clahe_slider = ToggleSliderInput(
+            "CLAHE", 0.5, 40, 2.0, 0.5, decimals=1,
+        )
+        self._close_slider = ToggleSliderInput(
+            "Morph Close", 1, 30, 5, 1, decimals=0,
+        )
+        self._open_slider = ToggleSliderInput(
+            "Morph Open", 1, 20, 3, 1, decimals=0,
+        )
+
+        for s in (self._gauss_slider, self._clahe_slider,
+                  self._close_slider, self._open_slider):
+            filters_section.add_widget(s)
+            s.value_changed.connect(lambda _: self.filters_changed.emit())
+
+        layout.addWidget(filters_section)
+
         # -- Fit button --
         self._fit_btn = QPushButton("Fit Current Frame")
         self._fit_btn.clicked.connect(self.fit_clicked)
@@ -129,3 +153,12 @@ class PreTuneTab(QWidget):
 
     def get_edge_flags(self) -> list[bool]:
         return [cb.isChecked() for cb in self._edge_checks]
+
+    def get_filter_params(self) -> dict:
+        """Return advanced filter parameters (0 = disabled)."""
+        return {
+            "gaussian_sigma": self._gauss_slider.value(),
+            "clahe_clip": self._clahe_slider.value(),
+            "closing_radius": int(self._close_slider.value()),
+            "opening_radius": int(self._open_slider.value()),
+        }

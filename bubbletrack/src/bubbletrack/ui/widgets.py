@@ -86,6 +86,93 @@ class SliderInput(QWidget):
 
 
 # ------------------------------------------------------------------ #
+# ToggleSliderInput  (checkbox + label + spinbox + slider)
+# ------------------------------------------------------------------ #
+
+class ToggleSliderInput(QWidget):
+    """``[☐] [Label] [SpinBox] ====o====`` — emits 0 when checkbox is off."""
+
+    value_changed = pyqtSignal(float)
+
+    def __init__(
+        self,
+        label: str,
+        min_val: float = 0,
+        max_val: float = 100,
+        default: float = 50,
+        step: float = 1,
+        decimals: int = 0,
+        parent: QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self._decimals = decimals
+        self._scale = 10 ** decimals
+        self._default = default
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 2, 0, 2)
+
+        self._check = QCheckBox()
+        self._check.setFixedWidth(20)
+        layout.addWidget(self._check)
+
+        self._label = QLabel(label)
+        self._label.setFixedWidth(72)
+        layout.addWidget(self._label)
+
+        if decimals > 0:
+            self._spin = QDoubleSpinBox()
+            self._spin.setDecimals(decimals)
+            self._spin.setSingleStep(step)
+        else:
+            self._spin = QSpinBox()
+            self._spin.setSingleStep(int(step))
+        self._spin.setRange(int(min_val * self._scale), int(max_val * self._scale))
+        self._spin.setValue(int(default * self._scale))
+        self._spin.setFixedWidth(60)
+        self._spin.setEnabled(False)
+        layout.addWidget(self._spin)
+
+        self._slider = QSlider(Qt.Orientation.Horizontal)
+        self._slider.setRange(int(min_val * self._scale), int(max_val * self._scale))
+        self._slider.setValue(int(default * self._scale))
+        self._slider.setEnabled(False)
+        layout.addWidget(self._slider, 1)
+
+        # Sync
+        self._slider.valueChanged.connect(self._slider_moved)
+        self._spin.valueChanged.connect(self._spin_changed)
+        self._check.toggled.connect(self._on_toggled)
+
+    def _slider_moved(self, v: int):
+        self._spin.blockSignals(True)
+        self._spin.setValue(v)
+        self._spin.blockSignals(False)
+        self.value_changed.emit(v / self._scale)
+
+    def _spin_changed(self, v):
+        iv = int(float(v) * self._scale) if self._decimals > 0 else int(v)
+        self._slider.blockSignals(True)
+        self._slider.setValue(iv)
+        self._slider.blockSignals(False)
+        self.value_changed.emit(float(v) if self._decimals > 0 else v)
+
+    def _on_toggled(self, checked: bool):
+        self._spin.setEnabled(checked)
+        self._slider.setEnabled(checked)
+        self.value_changed.emit(self.value())
+
+    def is_enabled(self) -> bool:
+        return self._check.isChecked()
+
+    def value(self) -> float:
+        if not self._check.isChecked():
+            return 0.0
+        raw = self._spin.value()
+        return raw / self._scale if self._decimals > 0 else float(raw)
+
+
+# ------------------------------------------------------------------ #
 # ToggleSwitch  (40×20 sliding toggle)
 # ------------------------------------------------------------------ #
 
