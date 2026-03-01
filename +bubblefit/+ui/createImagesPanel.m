@@ -9,7 +9,7 @@ function createImagesPanel(app)
 
     % Create ImageFolderButton
     app.ImageFolderButton = uibutton(app.ImagesPanel, 'push');
-    app.ImageFolderButton.ButtonPushedFcn = createCallbackFcn(app, @ImageFileButtonPushed, true);
+    app.ImageFolderButton.ButtonPushedFcn = @(src,event)ImageFileButtonPushed(app,event);
     app.ImageFolderButton.Position = [8 79 108 20];
     app.ImageFolderButton.Text = 'Image Folder';
 
@@ -34,13 +34,13 @@ function createImagesPanel(app)
     % Create ImagebitdepthDropDown
     app.ImagebitdepthDropDown = uidropdown(app.ImagesPanel);
     app.ImagebitdepthDropDown.Items = {'8', '10', '12', '16', '24', '32', '48'};
-    app.ImagebitdepthDropDown.ValueChangedFcn = createCallbackFcn(app, @ImagebitdepthDropDownValueChanged, true);
+    app.ImagebitdepthDropDown.ValueChangedFcn = @(src,event)ImagebitdepthDropDownValueChanged(app,event);
     app.ImagebitdepthDropDown.Position = [128 10 112 22];
     app.ImagebitdepthDropDown.Value = '16';
 
     % Create EditField
     app.EditField = uieditfield(app.ImagesPanel, 'text');
-    app.EditField.ValueChangedFcn = createCallbackFcn(app, @ImageFileButtonPushed, true);
+    app.EditField.ValueChangedFcn = @(src,event)ImageFileButtonPushed(app,event);
     app.EditField.Editable = 'off';
     app.EditField.Position = [128 79 200 20];
 

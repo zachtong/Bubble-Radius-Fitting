@@ -12,36 +12,26 @@ function Par = CircleFitByTaubin(XY)
 %
 %   Output: Par = [a b R] is the fitting circle:
 %                         center (a,b) and radius R
-%
-%   Note: this fit does not use built-in matrix functions (except "mean"),
-%         so it can be easily programmed in any programming language
+%                         Returns [NaN NaN NaN] if fitting fails.
 
-    n = size(XY,1);      % number of data points
-
-    centroid = mean(XY,1);   % the centroid of the data set
-
-    %     computing moments (note: all moments will be normed, i.e. divided by n)
-
-    Mxx = 0; Myy = 0; Mxy = 0; Mxz = 0; Myz = 0; Mzz = 0;
-
-    for i=1:n
-        Xi = XY(i,1) - centroid(1);  %  centering data
-        Yi = XY(i,2) - centroid(2);  %  centering data
-        Zi = Xi*Xi + Yi*Yi;
-        Mxy = Mxy + Xi*Yi;
-        Mxx = Mxx + Xi*Xi;
-        Myy = Myy + Yi*Yi;
-        Mxz = Mxz + Xi*Zi;
-        Myz = Myz + Yi*Zi;
-        Mzz = Mzz + Zi*Zi;
+    % Input validation
+    if size(XY, 1) < 3
+        Par = [NaN NaN NaN];
+        return;
     end
 
-    Mxx = Mxx/n;
-    Myy = Myy/n;
-    Mxy = Mxy/n;
-    Mxz = Mxz/n;
-    Myz = Myz/n;
-    Mzz = Mzz/n;
+    centroid = mean(XY, 1);   % the centroid of the data set
+
+    % Computing moments (vectorized, all moments normed by n)
+    XYc = XY - centroid;
+    Zi = sum(XYc.^2, 2);
+
+    Mxx = mean(XYc(:,1).^2);
+    Myy = mean(XYc(:,2).^2);
+    Mxy = mean(XYc(:,1) .* XYc(:,2));
+    Mxz = mean(XYc(:,1) .* Zi);
+    Myz = mean(XYc(:,2) .* Zi);
+    Mzz = mean(Zi.^2);
 
     %    computing the coefficients of the characteristic polynomial
 
@@ -65,20 +55,20 @@ function Par = CircleFitByTaubin(XY)
         yold = ynew;
         ynew = A0 + xnew*(A1 + xnew*(A2 + xnew*A3));
         if abs(ynew) > abs(yold)
-            disp('Newton-Taubin goes wrong direction: |ynew| > |yold|');
+            warning('bubblefit:newtonDirection', 'Newton-Taubin goes wrong direction: |ynew| > |yold|');
             xnew = 0;
             break;
         end
         Dy = A1 + xnew*(A22 + xnew*A33);
         xold = xnew;
         xnew = xold - ynew/Dy;
-        if (abs((xnew-xold)/xnew) < epsilon), break, end
+        if abs((xnew-xold)/(xnew + eps)) < epsilon, break, end
         if (iter >= IterMax)
-            disp('Newton-Taubin will not converge');
-            xnew = nan; %0;%modified to remove non-convergent circles, JBE 20160111
+            warning('bubblefit:noConverge', 'Newton-Taubin will not converge');
+            xnew = nan;
         end
         if (xnew<0.)
-            fprintf(1,'Newton-Taubin negative root:  x=%f\n',xnew);
+            warning('bubblefit:negativeRoot', 'Newton-Taubin negative root: x=%f', xnew);
             xnew = 0;
         end
     end

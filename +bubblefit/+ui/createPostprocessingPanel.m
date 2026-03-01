@@ -14,19 +14,19 @@ function createPostprocessingPanel(app)
 
     % Create ExportButton
     app.ExportButton = uibutton(app.ExporttoR_datamatPanel, 'push');
-    app.ExportButton.ButtonPushedFcn = createCallbackFcn(app, @ExportButtonPushed, true);
+    app.ExportButton.ButtonPushedFcn = @(src,event)ExportButtonPushed(app,event);
     app.ExportButton.Position = [194 52 100 43];
     app.ExportButton.Text = 'Export';
 
     % Create StoretoanotherpathButton
     app.StoretoanotherpathButton = uibutton(app.ExporttoR_datamatPanel, 'push');
-    app.StoretoanotherpathButton.ButtonPushedFcn = createCallbackFcn(app, @StoretoanotherpathButtonPushed, true);
+    app.StoretoanotherpathButton.ButtonPushedFcn = @(src,event)StoretoanotherpathButtonPushed(app,event);
     app.StoretoanotherpathButton.Position = [13 45 163 23];
     app.StoretoanotherpathButton.Text = 'Store to another path';
 
     % Create UsedefaultpathButton
     app.UsedefaultpathButton = uibutton(app.ExporttoR_datamatPanel, 'push');
-    app.UsedefaultpathButton.ButtonPushedFcn = createCallbackFcn(app, @UsedefaultpathButtonPushed, true);
+    app.UsedefaultpathButton.ButtonPushedFcn = @(src,event)UsedefaultpathButtonPushed(app,event);
     app.UsedefaultpathButton.Position = [13 73 163 23];
     app.UsedefaultpathButton.Text = 'Use default path';
 
@@ -38,7 +38,7 @@ function createPostprocessingPanel(app)
 
     % Create ExportpathEditField
     app.ExportpathEditField = uieditfield(app.ExporttoR_datamatPanel, 'text');
-    app.ExportpathEditField.ValueChangedFcn = createCallbackFcn(app, @ExportpathEditFieldValueChanged, true);
+    app.ExportpathEditField.ValueChangedFcn = @(src,event)ExportpathEditFieldValueChanged(app,event);
     app.ExportpathEditField.Position = [84 11 206 22];
 
     % Create ConverttophysicalworldunitsasRofTdatamatPanel
@@ -55,7 +55,7 @@ function createPostprocessingPanel(app)
     % Create FPSEditField
     app.FPSEditField = uieditfield(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'numeric');
     app.FPSEditField.Limits = [1 Inf];
-    app.FPSEditField.ValueChangedFcn = createCallbackFcn(app, @FPSEditFieldValueChanged, true);
+    app.FPSEditField.ValueChangedFcn = @(src,event)FPSEditFieldValueChanged(app,event);
     app.FPSEditField.HorizontalAlignment = 'left';
     app.FPSEditField.Position = [50 41 70 22];
     app.FPSEditField.Value = 1000000;
@@ -69,14 +69,14 @@ function createPostprocessingPanel(app)
     % Create um2pxEditField
     app.um2pxEditField = uieditfield(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'numeric');
     app.um2pxEditField.Limits = [0.001 Inf];
-    app.um2pxEditField.ValueChangedFcn = createCallbackFcn(app, @um2pxEditFieldValueChanged, true);
+    app.um2pxEditField.ValueChangedFcn = @(src,event)um2pxEditFieldValueChanged(app,event);
     app.um2pxEditField.HorizontalAlignment = 'left';
     app.um2pxEditField.Position = [50 11 70 22];
     app.um2pxEditField.Value = 3.2;
 
     % Create ExportButton_2
     app.ExportButton_2 = uibutton(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'push');
-    app.ExportButton_2.ButtonPushedFcn = createCallbackFcn(app, @ExportButton_2Pushed, true);
+    app.ExportButton_2.ButtonPushedFcn = @(src,event)ExportButton_2Pushed(app,event);
     app.ExportButton_2.Position = [183 12 100 21];
     app.ExportButton_2.Text = 'Export';
 
@@ -90,7 +90,7 @@ function createPostprocessingPanel(app)
     app.FitRmaxafterframeEditField = uieditfield(app.ConverttophysicalworldunitsasRofTdatamatPanel, 'numeric');
     app.FitRmaxafterframeEditField.Limits = [3 Inf];
     app.FitRmaxafterframeEditField.ValueDisplayFormat = '%.0f';
-    app.FitRmaxafterframeEditField.ValueChangedFcn = createCallbackFcn(app, @FitRmaxafterframeEditFieldValueChanged, true);
+    app.FitRmaxafterframeEditField.ValueChangedFcn = @(src,event)FitRmaxafterframeEditFieldValueChanged(app,event);
     app.FitRmaxafterframeEditField.HorizontalAlignment = 'left';
     app.FitRmaxafterframeEditField.Position = [265 41 30 22];
     app.FitRmaxafterframeEditField.Value = 11;

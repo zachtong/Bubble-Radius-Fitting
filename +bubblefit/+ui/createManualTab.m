@@ -21,7 +21,7 @@ function createManualTab(app)
 
     % Create ManuallyselectbubbleedgepointsButton
     app.ManuallyselectbubbleedgepointsButton = uibutton(app.ManualTab, 'push');
-    app.ManuallyselectbubbleedgepointsButton.ButtonPushedFcn = createCallbackFcn(app, @ManuallyselectbubbleedgepointsButtonPushed, true);
+    app.ManuallyselectbubbleedgepointsButton.ButtonPushedFcn = @(src,event)ManuallyselectbubbleedgepointsButtonPushed(app,event);
     app.ManuallyselectbubbleedgepointsButton.Position = [16 75 317 31];
     app.ManuallyselectbubbleedgepointsButton.Text = 'Manually select bubble edge points';
 
@@ -32,7 +32,7 @@ function createManualTab(app)
 
     % Create ClearandrefreshButton_3
     app.ClearandrefreshButton_3 = uibutton(app.ManualTab, 'push');
-    app.ClearandrefreshButton_3.ButtonPushedFcn = createCallbackFcn(app, @ClearandrefreshButton_3Pushed, true);
+    app.ClearandrefreshButton_3.ButtonPushedFcn = @(src,event)ClearandrefreshButton_3Pushed(app,event);
     app.ClearandrefreshButton_3.Position = [214 35 120 30];
     app.ClearandrefreshButton_3.Text = 'Clear and refresh';
 

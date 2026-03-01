@@ -7,7 +7,7 @@ function createPretuneTab(app)
 
     % Create ROIButton
     app.ROIButton = uibutton(app.PretuneTab, 'push');
-    app.ROIButton.ButtonPushedFcn = createCallbackFcn(app, @ROIButtonPushed, true);
+    app.ROIButton.ButtonPushedFcn = @(src,event)ROIButtonPushed(app,event);
     app.ROIButton.Position = [15 220 56 23];
     app.ROIButton.Text = 'ROI';
 
@@ -77,20 +77,20 @@ function createPretuneTab(app)
     app.ImageEditField = uieditfield(app.PretuneTab, 'numeric');
     app.ImageEditField.Limits = [1 Inf];
     app.ImageEditField.ValueDisplayFormat = '%.0f';
-    app.ImageEditField.ValueChangedFcn = createCallbackFcn(app, @ImageEditFieldValueChanged, true);
+    app.ImageEditField.ValueChangedFcn = @(src,event)ImageEditFieldValueChanged(app,event);
     app.ImageEditField.HorizontalAlignment = 'left';
     app.ImageEditField.Position = [76 255 41 22];
     app.ImageEditField.Value = 1;
 
     % Create FittingandPreviewButton
     app.FittingandPreviewButton = uibutton(app.PretuneTab, 'push');
-    app.FittingandPreviewButton.ButtonPushedFcn = createCallbackFcn(app, @FittingandPreviewButtonPushed, true);
+    app.FittingandPreviewButton.ButtonPushedFcn = @(src,event)FittingandPreviewButtonPushed(app,event);
     app.FittingandPreviewButton.Position = [15 8 178 28];
     app.FittingandPreviewButton.Text = 'Fitting and Preview';
 
     % Create ClearandrefreshButton
     app.ClearandrefreshButton = uibutton(app.PretuneTab, 'push');
-    app.ClearandrefreshButton.ButtonPushedFcn = createCallbackFcn(app, @ClearandrefreshButtonPushed, true);
+    app.ClearandrefreshButton.ButtonPushedFcn = @(src,event)ClearandrefreshButtonPushed(app,event);
     app.ClearandrefreshButton.Position = [213 8 120 30];
     app.ClearandrefreshButton.Text = 'Clear and refresh';
 
@@ -127,14 +127,14 @@ function createPretuneTab(app)
 
     % Create SliderThreshold
     app.SliderThreshold = uislider(app.PretuneTab);
-    app.SliderThreshold.ValueChangingFcn = createCallbackFcn(app, @SliderThresholdValueChanging, true);
+    app.SliderThreshold.ValueChangingFcn = @(src,event)SliderThresholdValueChanging(app,event);
     app.SliderThreshold.Position = [11 132 137 3];
     app.SliderThreshold.Value = 50;
 
     % Create SliderConnectedArea
     app.SliderConnectedArea = uislider(app.PretuneTab);
-    app.SliderConnectedArea.ValueChangedFcn = createCallbackFcn(app, @SliderConnectedAreaValueChanged, true);
-    app.SliderConnectedArea.ValueChangingFcn = createCallbackFcn(app, @SliderConnectedAreaValueChanging, true);
+    app.SliderConnectedArea.ValueChangedFcn = @(src,event)SliderConnectedAreaValueChanged(app,event);
+    app.SliderConnectedArea.ValueChangingFcn = @(src,event)SliderConnectedAreaValueChanging(app,event);
     app.SliderConnectedArea.Position = [181 132 140 3];
     app.SliderConnectedArea.Value = 50;
 
@@ -152,7 +152,7 @@ function createPretuneTab(app)
 
     % Create ThresholdEditField
     app.ThresholdEditField = uieditfield(app.PretuneTab, 'numeric');
-    app.ThresholdEditField.ValueChangedFcn = createCallbackFcn(app, @ThresholdEditFieldValueChanged, true);
+    app.ThresholdEditField.ValueChangedFcn = @(src,event)ThresholdEditFieldValueChanged(app,event);
     app.ThresholdEditField.Position = [106 59 42 26];
 
     % Create RemovingFactorEditFieldLabel
@@ -163,7 +163,7 @@ function createPretuneTab(app)
 
     % Create RemovingFactorEditField
     app.RemovingFactorEditField = uieditfield(app.PretuneTab, 'numeric');
-    app.RemovingFactorEditField.ValueChangedFcn = createCallbackFcn(app, @RemovingFactorEditFieldValueChanged, true);
+    app.RemovingFactorEditField.ValueChangedFcn = @(src,event)RemovingFactorEditFieldValueChanged(app,event);
     app.RemovingFactorEditField.Position = [287 61 45 22];
 
 end

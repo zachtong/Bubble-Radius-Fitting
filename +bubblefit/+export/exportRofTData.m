@@ -25,10 +25,15 @@ function [success, msg] = exportRofTData(savePath, Radius, um2px, FPS, Rmax_Fit_
 
     [Rmaxtemp, RmaxTimeLoctemp] = max(R); % Find Rmax discrete
 
-    % Check if the Rmax_fit_length is legal
+    % Check if the Rmax_fit_length is legal (both boundaries)
     if RmaxTimeLoctemp - RmaxFitHalfLength < 1
         success = false;
-        msg = 'Please check your Rmax_Fit_length!';
+        msg = 'Rmax_Fit_Length exceeds data range (left boundary)!';
+        return;
+    end
+    if RmaxTimeLoctemp + RmaxFitHalfLength > length(R)
+        success = false;
+        msg = 'Rmax_Fit_Length exceeds data range (right boundary)!';
         return;
     end
 
@@ -39,8 +44,27 @@ function [success, msg] = exportRofTData(savePath, Radius, um2px, FPS, Rmax_Fit_
     % Do quadratic fitting for a more accurate Rmax
     try
         p = polyfit(RmaxTimeLoctempList, RmaxtempList, 2);
-        RmaxTimeLoctemp = -p(2) / 2 / p(1);
-        RmaxAlltemp = (4*p(1)*p(3) - p(2)^2) / (4*p(1));
+
+        % Validate: parabola must open downward (p(1) < 0) for a maximum
+        if p(1) >= 0
+            warning('bubblefit:invalidFit', ...
+                'Quadratic fit is not concave (p(1)=%.4g); using discrete Rmax.', p(1));
+            RmaxAlltemp = Rmaxtemp;
+        else
+            fitTimeLoc = -p(2) / 2 / p(1);
+            fitRmax = (4*p(1)*p(3) - p(2)^2) / (4*p(1));
+
+            % Validate: interpolated peak must be within data range
+            if fitTimeLoc < 1 || fitTimeLoc > length(R)
+                warning('bubblefit:peakOutOfRange', ...
+                    'Interpolated Rmax at t=%.1f is out of data range [1, %d]; using discrete Rmax.', ...
+                    fitTimeLoc, length(R));
+                RmaxAlltemp = Rmaxtemp;
+            else
+                RmaxTimeLoctemp = fitTimeLoc;
+                RmaxAlltemp = fitRmax;
+            end
+        end
     catch
         RmaxAlltemp = Rmaxtemp;
     end
@@ -52,7 +76,7 @@ function [success, msg] = exportRofTData(savePath, Radius, um2px, FPS, Rmax_Fit_
     RmaxAll = RmaxAlltemp * deltax;
     RmaxTimeLoc = RmaxTimeLoctemp * deltat;
 
-    savePath2 = [fileparts(savePath), '/RofTdata.mat'];
+    savePath2 = fullfile(fileparts(savePath), 'RofTdata.mat');
     save(savePath2, 't', 'R', 'RmaxAll', 'RmaxTimeLoc');
 
     success = true;

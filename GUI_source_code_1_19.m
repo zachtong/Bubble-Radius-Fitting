@@ -133,12 +133,12 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         function LoadParas(app)
             switch app.TabGroup.SelectedTab
                 case app.PretuneTab
-                    app.ImgThr = app.SliderThreshold.Value/100;
+                    app.ImgThr = 1 - app.SliderThreshold.Value/100;
                     app.gridy = [app.LEditField_L1.Value,app.LEditField_R1.Value];
                     app.gridx = [app.LEditField_U1.Value,app.LEditField_D1.Value];
                     app.imageNo = app.ImageEditField.Value;
                     app.imageFormat = app.ImageformatDropDown.Value;
-                    app.removingFactor = round(app.SliderConnectedArea.Value/100 * app.gridx(2) * app.gridy(2));
+                    app.removingFactor = bubblefit.imageproc.computeRemovingFactor(app.SliderConnectedArea.Value, app.gridx, app.gridy);
                     app.realtimePlayOrNot = app.RealtimeplayCheckBox.Value;
                     app.bubbleCrossEdges = [app.TopEdgeOrNot.Value, app.RightEdgeOrNot.Value, app.DownEdgeOrNot.Value, app.LeftEdgeOrNot.Value];
                 case app.ManualTab
@@ -153,7 +153,7 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
                     app.imageNo = app.startNum.Value;
                     app.imageTotalNum = app.endNum.Value;
                     app.imageFormat = app.ImageformatDropDown.Value;
-                    app.removingFactor = round(app.SliderConnectedArea.Value/100 * app.gridx(2) * app.gridy(2));
+                    app.removingFactor = bubblefit.imageproc.computeRemovingFactor(app.SliderConnectedArea.Value, app.gridx, app.gridy);
                     app.realtimePlayOrNot = app.RealtimeplayCheckBox.Value;
                     app.bubbleCrossEdges = [app.TopEdgeOrNot.Value, app.RightEdgeOrNot.Value, app.DownEdgeOrNot.Value, app.LeftEdgeOrNot.Value];
 
@@ -231,7 +231,6 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
             [app.cur_img, app.cur_img_binary, app.cur_img_ROI, app.cur_img_binary_ROI] = ...
                 bubblefit.imageproc.loadAndNormalize( ...
                     app.images, app.imageNo, ...
-                    app.ImagebitdepthDropDown.Value, ...
                     app.ImgThr, app.gridx, app.gridy);
         end
 
@@ -239,7 +238,7 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         function realtimeDisplay_threshold(app, threshold)
             % Update para
             LoadParas(app);
-            app.ImgThr = threshold/100;
+            app.ImgThr = 1 - threshold/100;
 
             % ROI modify and display binary image
             GetCurrentbinaryImage(app); % You will get an binary image -- app.cur_img
@@ -263,7 +262,7 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
         function realtimeDisplay_connectedArea(app, removingFactor)
             %% Update para
             LoadParas(app);
-            app.removingFactor = round(removingFactor/100 * app.gridx(2) * app.gridy(2));
+            app.removingFactor = bubblefit.imageproc.computeRemovingFactor(removingFactor, app.gridx, app.gridy);
 
             % ROI modify and display binary image
             GetCurrentbinaryImage(app);
@@ -306,11 +305,19 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
         end
 
+        function clearAndRefreshData(app)
+            app.Radius_backup = app.Radius;
+            app.Radius = zeros(size(app.Radius)) - 1;
+            app.CircleFitPar = zeros(length(app.Radius),2);
+            app.CircleXY = [];
+            cla(app.UIAxes_Rtcurve);
+        end
+
     end
 
 
     % Callbacks that handle component events
-    methods (Access = private)
+    methods (Access = public)
 
         % Code that executes after component creation
         function startupFcn(app)
@@ -542,25 +549,13 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
                 for i = app.startNum.Value : app.endNum.Value
 
-
-                    % % Update para
-                    % LoadParas(app);
-                    %
-                    %
-                    % pause(1e-4)
-                    % if app.stopiter
-                    %     break
-                    %
-                    % end
-
                     GetCurrentbinaryImage(app);
-                    deleteOldPoints(app);
                     PreviewSingleImage(app);
                     app.imageNo = app.imageNo+1;
 
                     d.Value = ceil(i-app.startNum.Value)/(app.endNum.Value -app.startNum.Value);
                     d.Message = sprintf('Processing... %d%% Finished!', floor(d.Value*100));
-                    pause(0.01)
+                    drawnow limitrate;
                     if d.CancelRequested
                         break;
                     end
@@ -582,11 +577,7 @@ classdef GUI_source_code_1_19 < matlab.apps.AppBase
 
         % Button pushed function: ClearandrefreshButton
         function ClearandrefreshButtonPushed(app, event)
-            app.Radius_backup = app.Radius;
-            app.Radius = zeros(size(app.Radius)) - 1;
-            app.CircleFitPar = zeros(length(app.Radius),2);
-            app.CircleXY = [];
-            cla(app.UIAxes_Rtcurve);
+            clearAndRefreshData(app);
         end
 
         % Button pushed function: ManuallyselectbubbleedgepointsButton
@@ -724,42 +715,17 @@ end
 
         % Button pushed function: ClearandrefreshButton_3
         function ClearandrefreshButton_3Pushed(app, event)
-            app.Radius_backup = app.Radius;
-            app.Radius = zeros(size(app.Radius)) - 1;
-            app.CircleFitPar = zeros(length(app.Radius),2);
-            app.CircleXY = [];
-            cla(app.UIAxes_Rtcurve);
+            clearAndRefreshData(app);
         end
 
         % Button pushed function: ClearandrefreshButton_2
         function ClearandrefreshButton_2Pushed(app, event)
-            app.Radius_backup = app.Radius;
-            app.Radius = zeros(size(app.Radius)) - 1;
-            app.CircleFitPar = zeros(length(app.Radius),2);
-            app.CircleXY = [];
-            cla(app.UIAxes_Rtcurve);
+            clearAndRefreshData(app);
         end
 
         % Callback function
         function StopButtonPushed(app, event)
             app.stopiter=false;
-        end
-
-        % Callback function
-        function ImagethresholdEditField_2ValueChanged(app, event)
-            app.ImgThr = app.ImagethresholdEditField_2.Value;
-        end
-
-        % Callback function
-        function ImagethresholdEditFieldValueChanged(app, event)
-            app.ImgThr = app.ImagethresholdEditField.Value;
-
-        end
-
-        % Callback function
-        function ImagethresholdEditField_3ValueChanged(app, event)
-            app.ImgThr = app.ImagethresholdEditField_3.Value;
-
         end
 
         % Value changed function: ImagebitdepthDropDown
@@ -874,14 +840,14 @@ end
 
             app.ModeDropDown = uidropdown(app.GridLayout);
             app.ModeDropDown.Items = {'Pre-tune', 'Manual', 'Automatic'};
-            app.ModeDropDown.ValueChangedFcn = createCallbackFcn(app, @ModeDropDownValueChanged, true);
+            app.ModeDropDown.ValueChangedFcn = app.createCallbackFcn(@ModeDropDownValueChanged, true);
             app.ModeDropDown.Layout.Row = 6;
             app.ModeDropDown.Layout.Column = [2 3];
             app.ModeDropDown.Value = 'Pre-tune';
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
-            app.TabGroup.SelectionChangedFcn = createCallbackFcn(app, @TabGroupSelectionChanged, true);
+            app.TabGroup.SelectionChangedFcn = app.createCallbackFcn(@TabGroupSelectionChanged, true);
             app.TabGroup.Layout.Row = [7 10];
             app.TabGroup.Layout.Column = [1 5];
 
@@ -915,7 +881,7 @@ end
 
             % Create top-level buttons and labels
             app.LoadexistingR_datamatButton = uibutton(app.GridLayout, 'push');
-            app.LoadexistingR_datamatButton.ButtonPushedFcn = createCallbackFcn(app, @LoadexistingR_datamatButtonPushed, true);
+            app.LoadexistingR_datamatButton.ButtonPushedFcn = app.createCallbackFcn(@LoadexistingR_datamatButtonPushed, true);
             app.LoadexistingR_datamatButton.Layout.Row = 6;
             app.LoadexistingR_datamatButton.Layout.Column = [4 5];
             app.LoadexistingR_datamatButton.Text = 'Load existing R_data.mat';

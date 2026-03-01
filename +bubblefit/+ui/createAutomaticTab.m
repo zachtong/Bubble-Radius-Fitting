@@ -7,7 +7,7 @@ function createAutomaticTab(app)
 
     % Create FittingandPreviewButton_2
     app.FittingandPreviewButton_2 = uibutton(app.AutomaticTab, 'push');
-    app.FittingandPreviewButton_2.ButtonPushedFcn = createCallbackFcn(app, @FittingandPreviewButton_2Pushed, true);
+    app.FittingandPreviewButton_2.ButtonPushedFcn = @(src,event)FittingandPreviewButton_2Pushed(app,event);
     app.FittingandPreviewButton_2.Position = [14 73 322 28];
     app.FittingandPreviewButton_2.Text = 'Fitting and Preview';
 
@@ -65,7 +65,7 @@ function createAutomaticTab(app)
 
     % Create ROIButton_2
     app.ROIButton_2 = uibutton(app.AutomaticTab, 'push');
-    app.ROIButton_2.ButtonPushedFcn = createCallbackFcn(app, @ROIButton_2Pushed, true);
+    app.ROIButton_2.ButtonPushedFcn = @(src,event)ROIButton_2Pushed(app,event);
     app.ROIButton_2.Position = [13 181 56 23];
     app.ROIButton_2.Text = 'ROI';
 
@@ -96,13 +96,13 @@ function createAutomaticTab(app)
 
     % Create ClearandrefreshButton_2
     app.ClearandrefreshButton_2 = uibutton(app.AutomaticTab, 'push');
-    app.ClearandrefreshButton_2.ButtonPushedFcn = createCallbackFcn(app, @ClearandrefreshButton_2Pushed, true);
+    app.ClearandrefreshButton_2.ButtonPushedFcn = @(src,event)ClearandrefreshButton_2Pushed(app,event);
     app.ClearandrefreshButton_2.Position = [215 35 120 30];
     app.ClearandrefreshButton_2.Text = 'Clear and refresh';
 
     % Create LoadtunedparametersButton
     app.LoadtunedparametersButton = uibutton(app.AutomaticTab, 'push');
-    app.LoadtunedparametersButton.ButtonPushedFcn = createCallbackFcn(app, @LoadtunedparametersButtonPushed, true);
+    app.LoadtunedparametersButton.ButtonPushedFcn = @(src,event)LoadtunedparametersButtonPushed(app,event);
     app.LoadtunedparametersButton.Position = [13 217 317 28];
     app.LoadtunedparametersButton.Text = 'Load tuned parameters';
 

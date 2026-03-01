@@ -5,7 +5,7 @@ function [bws2, edgeXY] = detectBubble(binaryROI, bubbleCrossEdges, removingFact
 %       removingFactor, removeobjradius, BigOrSmall, gridx, gridy)
 %
 %   Pipeline: expand image -> remove small areas -> find largest blob ->
-%   crop back -> edge detection.
+%   crop back -> boundary extraction.
 %
 %   Inputs:
 %     binaryROI        - binary ROI image
@@ -19,6 +19,11 @@ function [bws2, edgeXY] = detectBubble(binaryROI, bubbleCrossEdges, removingFact
 %   Outputs:
 %     bws2   - processed binary image (original ROI size) showing detected bubble
 %     edgeXY - N-by-2 array of edge coordinates in full-image space [row, col]
+
+    % Named constants for connected component filtering
+    MAX_AXIS_RATIO = 2.2;      % max major axis vs image short side
+    MAX_ECCENTRICITY = 1.6;    % max major/minor axis ratio
+    MIN_HOLE_AREA = 40;        % min area for hole removal after blob selection
 
     bw = binaryROI;
     [originalRows, originalCols] = size(bw);
@@ -45,8 +50,8 @@ function [bws2, edgeXY] = detectBubble(binaryROI, bubbleCrossEdges, removingFact
         CC = bwconncomp(bws);
         props = regionprops(CC, 'Area', 'PixelIdxList', 'MajorAxisLength', 'MinorAxisLength');
         for tempjj = 1:length(props)
-            if props(tempjj).MajorAxisLength > 2.2*min(size(bws)) || ...
-               props(tempjj).MajorAxisLength > 1.6*props(tempjj).MinorAxisLength
+            if props(tempjj).MajorAxisLength > MAX_AXIS_RATIO*min(size(bws)) || ...
+               props(tempjj).MajorAxisLength > MAX_ECCENTRICITY*props(tempjj).MinorAxisLength
                 props(tempjj).Area = 0;
             end
         end
@@ -57,7 +62,7 @@ function [bws2, edgeXY] = detectBubble(binaryROI, bubbleCrossEdges, removingFact
         bws2 = false(size(bws));
         bws2(largestBlobIndexes) = 1; % Only keep the largest blob area
 
-        bws2 = bwareaopen(double(1-bws2), 40); % Remove small objects from binary image
+        bws2 = bwareaopen(double(1-bws2), MIN_HOLE_AREA);
         bws2 = 1 - bws2; % Flip white and black colors
     end
 
