@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -15,8 +16,11 @@ from bubbletrack.controller.controller import AppController
 def main():
     app = QApplication(sys.argv)
 
-    # Load QSS stylesheet
-    res = Path(__file__).parent / "resources"
+    # Resolve resources path (works both normally and when frozen by PyInstaller)
+    if getattr(sys, 'frozen', False):
+        res = Path(sys._MEIPASS) / "bubbletrack" / "resources"
+    else:
+        res = Path(__file__).parent / "resources"
     qss_path = res / "style.qss"
     if qss_path.exists():
         app.setStyleSheet(qss_path.read_text(encoding="utf-8"))

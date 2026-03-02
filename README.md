@@ -145,6 +145,10 @@ Circle fitting algorithm:
 
 > G. Taubin, "Estimation Of Planar Curves, Surfaces And Nonplanar Space Curves Defined By Implicit Equations, With Applications To Edge And Range Image Segmentation", IEEE Trans. PAMI, Vol. 13, pp 1115-1138, 1991.
 
+## Author
+
+Zixiang (Zach) Tong, The University of Texas at Austin
+
 ## License
 
 For academic and research use.
