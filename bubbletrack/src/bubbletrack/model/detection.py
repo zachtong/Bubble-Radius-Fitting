@@ -119,7 +119,9 @@ def detect_bubble(
     expanded = expand_binary_image(bw, bubble_cross_edges)
 
     # Remove small connected white areas
-    expanded = morphology.remove_small_objects(expanded, min_size=removing_factor)
+    expanded = morphology.remove_small_objects(
+        expanded, max_size=max(0, removing_factor - 1),
+    )
 
     # Optional morphological opening (remove bead spurs on edges)
     if opening_radius > 0:
@@ -165,7 +167,7 @@ def detect_bubble(
 
     # Remove small holes inside the blob
     holes = ~blob_mask
-    holes_cleaned = morphology.remove_small_objects(holes, min_size=MIN_HOLE_AREA)
+    holes_cleaned = morphology.remove_small_objects(holes, max_size=MIN_HOLE_AREA - 1)
     blob_mask = ~holes_cleaned
 
     # Crop back to original ROI size

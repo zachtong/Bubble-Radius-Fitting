@@ -90,3 +90,44 @@ class TestDetectBubble:
         img = np.ones((50, 50), dtype=bool)
         processed, edge_xy = detect_bubble(img, [False]*4, 10, (1, 50), (1, 50))
         assert edge_xy.shape[0] == 0
+
+    def test_opening_removes_spurs(self):
+        """Morphological opening should remove thin protrusions."""
+        img = _make_disk_image(200, 200, 100, 100, 40)
+        # Add a thin spur (1px wide) on the bubble edge
+        img[60, 95:106] = False  # horizontal spur
+        edges = [False] * 4
+        _, edge_no_open = detect_bubble(img, edges, 10, (1, 200), (1, 200))
+        _, edge_open = detect_bubble(
+            img, edges, 10, (1, 200), (1, 200), opening_radius=3,
+        )
+        # Opening should produce a cleaner (fewer edge points) result
+        assert edge_open.shape[0] <= edge_no_open.shape[0]
+
+    def test_closing_smooths_boundary(self):
+        """Morphological closing should smooth boundary irregularities."""
+        # Bubble crosses top edge so it's not fully enclosed after expansion
+        img = _make_disk_image(200, 200, 0, 100, 40)
+        # Add jagged notches on the bubble boundary
+        img[30:35, 95:100] = True
+        img[25:30, 105:110] = True
+        edges = [True, False, False, False]
+        proc_no_close, e1 = detect_bubble(img, edges, 10, (1, 200), (1, 200))
+        proc_close, e2 = detect_bubble(
+            img, edges, 10, (1, 200), (1, 200), closing_radius=5,
+        )
+        # Both should detect the bubble
+        assert e1.shape[0] > 0
+        assert e2.shape[0] > 0
+
+    def test_filters_backward_compatible(self):
+        """Default filter params should not change output."""
+        img = _make_disk_image(200, 200, 100, 100, 40)
+        edges = [False] * 4
+        p1, e1 = detect_bubble(img, edges, 10, (1, 200), (1, 200))
+        p2, e2 = detect_bubble(
+            img, edges, 10, (1, 200), (1, 200),
+            opening_radius=0, closing_radius=0,
+        )
+        np.testing.assert_array_equal(p1, p2)
+        np.testing.assert_array_equal(e1, e2)

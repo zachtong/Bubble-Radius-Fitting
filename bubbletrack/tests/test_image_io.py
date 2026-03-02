@@ -106,3 +106,40 @@ class TestLoadAndNormalize:
         paths = scan_folder(img_folder)
         full, _, roi, _ = load_and_normalize(paths[0], 0.5, (1, 100), (1, 120))
         np.testing.assert_array_equal(full, roi)
+
+    def test_gaussian_blur_smooths(self, tmp_path):
+        """Gaussian blur should reduce high-frequency noise."""
+        rng = np.random.default_rng(42)
+        noisy = rng.integers(0, 256, (100, 100), dtype=np.uint8)
+        path = str(tmp_path / "noisy.png")
+        cv2.imwrite(path, noisy)
+        _, bin_no_blur, _, _ = load_and_normalize(
+            path, 0.5, (1, 100), (1, 100),
+        )
+        _, bin_blur, _, _ = load_and_normalize(
+            path, 0.5, (1, 100), (1, 100), gaussian_sigma=5.0,
+        )
+        # Blurred binary should have fewer transitions (smoother)
+        edges_no = np.sum(np.abs(np.diff(bin_no_blur.astype(int), axis=1)))
+        edges_blur = np.sum(np.abs(np.diff(bin_blur.astype(int), axis=1)))
+        assert edges_blur < edges_no
+
+    def test_clahe_does_not_change_shape(self, img_folder):
+        """CLAHE should preserve image dimensions."""
+        paths = scan_folder(img_folder)
+        full_no, _, _, _ = load_and_normalize(paths[0], 0.5, (1, 100), (1, 120))
+        full_cl, _, _, _ = load_and_normalize(
+            paths[0], 0.5, (1, 100), (1, 120), clahe_clip=2.0,
+        )
+        assert full_no.shape == full_cl.shape
+
+    def test_filters_default_to_noop(self, img_folder):
+        """With sigma=0 and clip=0, output should be identical to no-filter."""
+        paths = scan_folder(img_folder)
+        r1 = load_and_normalize(paths[0], 0.5, (1, 100), (1, 120))
+        r2 = load_and_normalize(
+            paths[0], 0.5, (1, 100), (1, 120),
+            gaussian_sigma=0.0, clahe_clip=0.0,
+        )
+        np.testing.assert_array_equal(r1[0], r2[0])
+        np.testing.assert_array_equal(r1[1], r2[1])

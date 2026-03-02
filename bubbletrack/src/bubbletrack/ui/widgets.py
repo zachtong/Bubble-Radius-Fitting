@@ -171,6 +171,21 @@ class ToggleSliderInput(QWidget):
         raw = self._spin.value()
         return raw / self._scale if self._decimals > 0 else float(raw)
 
+    def set_value(self, v: float, enabled: bool = True):
+        """Set value and checkbox state without emitting signals."""
+        self._check.blockSignals(True)
+        self._spin.blockSignals(True)
+        self._slider.blockSignals(True)
+        self._check.setChecked(enabled)
+        self._spin.setEnabled(enabled)
+        self._slider.setEnabled(enabled)
+        iv = int(v * self._scale)
+        self._spin.setValue(iv)
+        self._slider.setValue(iv)
+        self._check.blockSignals(False)
+        self._spin.blockSignals(False)
+        self._slider.blockSignals(False)
+
 
 # ------------------------------------------------------------------ #
 # ToggleSwitch  (40×20 sliding toggle)

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
-    QCheckBox, QGroupBox, QHBoxLayout, QLabel,
+    QCheckBox, QFileDialog, QGroupBox, QHBoxLayout, QLabel,
     QPushButton, QSpinBox, QVBoxLayout, QWidget,
 )
 
@@ -110,6 +112,20 @@ class PreTuneTab(QWidget):
             filters_section.add_widget(s)
             s.value_changed.connect(lambda _: self.filters_changed.emit())
 
+        # Preset buttons
+        preset_row = QHBoxLayout()
+        save_btn = QPushButton("Save Preset")
+        save_btn.setObjectName("secondaryBtn")
+        save_btn.clicked.connect(self._save_preset)
+        preset_row.addWidget(save_btn)
+        load_btn = QPushButton("Load Preset")
+        load_btn.setObjectName("secondaryBtn")
+        load_btn.clicked.connect(self._load_preset)
+        preset_row.addWidget(load_btn)
+        preset_container = QWidget()
+        preset_container.setLayout(preset_row)
+        filters_section.add_widget(preset_container)
+
         layout.addWidget(filters_section)
 
         # -- Fit button --
@@ -162,3 +178,57 @@ class PreTuneTab(QWidget):
             "closing_radius": int(self._close_slider.value()),
             "opening_radius": int(self._open_slider.value()),
         }
+
+    def _get_full_params(self) -> dict:
+        """Return all pretune parameters for preset save."""
+        return {
+            "threshold": self.get_threshold(),
+            "removing_factor": self.get_removing_factor_slider(),
+            "edge_flags": self.get_edge_flags(),
+            **self.get_filter_params(),
+        }
+
+    def _save_preset(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Filter Preset", "", "JSON Files (*.json)",
+        )
+        if not path:
+            return
+        with open(path, "w") as f:
+            json.dump(self._get_full_params(), f, indent=2)
+
+    def _load_preset(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load Filter Preset", "", "JSON Files (*.json)",
+        )
+        if not path:
+            return
+        with open(path) as f:
+            p = json.load(f)
+
+        # Apply threshold and removing factor
+        if "threshold" in p:
+            self.set_threshold(p["threshold"])
+            self.threshold_changed.emit(p["threshold"])
+        if "removing_factor" in p:
+            self._removing_factor.set_value(p["removing_factor"])
+            self.removing_factor_changed.emit(p["removing_factor"])
+
+        # Apply edge flags
+        if "edge_flags" in p:
+            for cb, val in zip(self._edge_checks, p["edge_flags"]):
+                cb.setChecked(val)
+
+        # Apply advanced filters
+        slider_map = {
+            "gaussian_sigma": self._gauss_slider,
+            "clahe_clip": self._clahe_slider,
+            "closing_radius": self._close_slider,
+            "opening_radius": self._open_slider,
+        }
+        for key, slider in slider_map.items():
+            if key in p:
+                v = p[key]
+                slider.set_value(v if v > 0 else slider._default, enabled=v > 0)
+
+        self.filters_changed.emit()

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import numpy as np
+from PyQt6.QtCore import QTimer
 
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.detection import detect_bubble
@@ -30,6 +31,19 @@ class AppController:
         self.state = AppState()
         self._worker: BatchWorker | None = None
         self._manual_points: list[tuple[float, float]] = []
+
+        # Debounce timers for slider-driven updates (150 ms)
+        self._display_timer = QTimer()
+        self._display_timer.setSingleShot(True)
+        self._display_timer.setInterval(150)
+        self._display_timer.timeout.connect(
+            lambda: self._display_frame(self.state.image_no)
+        )
+
+        self._preview_timer = QTimer()
+        self._preview_timer.setSingleShot(True)
+        self._preview_timer.setInterval(150)
+        self._preview_timer.timeout.connect(self._preview_detection)
 
         self._connect_signals()
 
@@ -203,11 +217,11 @@ class AppController:
 
     def _on_threshold_changed(self, v: float):
         self.state.img_thr = v
-        self._display_frame(self.state.image_no)
+        self._display_timer.start()  # debounced
 
     def _on_removing_factor_changed(self, v: int):
         self.state.removing_factor = v
-        self._preview_detection()
+        self._preview_timer.start()  # debounced
 
     def _on_filters_changed(self):
         p = self.w.left_panel.pretune_tab.get_filter_params()
@@ -215,7 +229,7 @@ class AppController:
         self.state.clahe_clip = p["clahe_clip"]
         self.state.closing_radius = p["closing_radius"]
         self.state.opening_radius = p["opening_radius"]
-        self._preview_detection()
+        self._preview_timer.start()  # debounced
 
     def _on_edges_changed(self):
         self.state.bubble_cross_edges = self.w.left_panel.pretune_tab.get_edge_flags()
