@@ -507,6 +507,11 @@ class AppController:
             self.w.original_panel.draw_roi_rect(
                 self.state.gridx, self.state.gridy,
             )
+            # Draw fitted circle and edge points on original image
+            if radius > 0 and edge_xy is not None and edge_xy.shape[0] > 0:
+                rc, cc, _ = circle_fit_taubin(edge_xy)
+                self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
+                self.w.original_panel.draw_points(edge_xy, "#EF4444", 2.0)
         except Exception:
             pass
 
