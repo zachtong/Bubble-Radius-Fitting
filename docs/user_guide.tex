@@ -1,0 +1,1031 @@
+% =============================================================================
+%  Bubble Radius Fitting — User Guide
+%  Author: Zixiang (Zach) Tong, The University of Texas at Austin
+% =============================================================================
+\documentclass[11pt, letterpaper]{article}
+
+% ---------- Packages ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tcolorbox}
+\usepackage{fontawesome5}
+
+% ---------- Colour definitions ----------
+\definecolor{primaryblue}{HTML}{3B82F6}
+\definecolor{darknavy}{HTML}{0F172A}
+\definecolor{successgreen}{HTML}{22C55E}
+\definecolor{errorred}{HTML}{EF4444}
+\definecolor{warningamber}{HTML}{FCD34D}
+\definecolor{lightslate}{HTML}{F8FAFC}
+\definecolor{bordergrey}{HTML}{E2E8F0}
+\definecolor{dimgrey}{HTML}{94A3B8}
+
+% ---------- Hyperlink style ----------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    urlcolor=primaryblue,
+    citecolor=primaryblue,
+}
+
+% ---------- Header / footer ----------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{dimgrey}{Bubble Radius Fitting --- User Guide}}
+\fancyhead[R]{\small\textcolor{dimgrey}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------- Section styling ----------
+\titleformat{\section}
+  {\Large\bfseries\color{darknavy}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{darknavy}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{darknavy}}{\thesubsubsection}{1em}{}
+
+% ---------- Code listing style ----------
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{lightslate},
+    frame=single,
+    rulecolor=\color{bordergrey},
+    breaklines=true,
+    captionpos=b,
+}
+
+% ---------- Tip / Note boxes ----------
+\newtcolorbox{tipbox}[1][]{
+    colback=blue!5, colframe=primaryblue,
+    fonttitle=\bfseries, title={#1},
+    boxrule=0.5pt, arc=4pt,
+}
+
+\newtcolorbox{warnbox}[1][]{
+    colback=red!5, colframe=errorred,
+    fonttitle=\bfseries, title={#1},
+    boxrule=0.5pt, arc=4pt,
+}
+
+\newtcolorbox{notebox}[1][]{
+    colback=yellow!5, colframe=warningamber,
+    fonttitle=\bfseries, title={#1},
+    boxrule=0.5pt, arc=4pt,
+}
+
+% =============================================================================
+\begin{document}
+
+% -------- Title page --------
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+
+{\Huge\bfseries\color{darknavy} Bubble Radius Fitting}\\[0.5cm]
+{\LARGE\color{primaryblue} User Guide}\\[2cm]
+{\Large Version 1.0}\\[1cm]
+{\large Zixiang (Zach) Tong}\\[0.3cm]
+{\large The University of Texas at Austin}\\[2cm]
+{\large \today}
+
+\vfill
+{\small
+    Built with Python 3.10+ \quad|\quad PyQt6 \quad|\quad OpenCV \quad|\quad NumPy
+}
+\end{titlepage}
+
+% -------- Table of contents --------
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Introduction}
+% =============================================================================
+
+Bubble Radius Fitting is a desktop application for extracting bubble radius
+versus time data from high-speed camera image sequences. The software detects
+bubble boundaries via adaptive thresholding and morphological filtering, then
+fits circles using the Taubin algebraic method.
+
+\subsection{Key Features}
+
+\begin{itemize}[leftmargin=1.5em]
+    \item Three analysis modes: Pre-tune, Manual, and Automatic
+    \item Side-by-side image viewer with zoom, pan, and overlay visualisations
+    \item Interactive ROI (Region of Interest) selection
+    \item Advanced image filters: Gaussian Blur, CLAHE, Morphological Open/Close
+    \item Live-updating $R(t)$ scatter chart
+    \item Data export to \texttt{.mat} files (MATLAB-compatible)
+    \item Saveable/loadable parameter presets (JSON)
+    \item Radius outlier filtering
+\end{itemize}
+
+\subsection{Supported Image Formats}
+
+The application supports standard image file formats commonly produced by
+high-speed cameras:
+
+\begin{center}
+\begin{tabular}{ll}
+    \toprule
+    \textbf{Format} & \textbf{Extensions} \\
+    \midrule
+    TIFF (preferred) & \texttt{.tiff}, \texttt{.tif} \\
+    PNG              & \texttt{.png} \\
+    JPEG             & \texttt{.jpg}, \texttt{.jpeg} \\
+    BMP              & \texttt{.bmp} \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+When multiple formats are present in the same folder, TIFF files are
+given priority. Files within each format are sorted using natural ordering
+(e.g.\ \texttt{img1}, \texttt{img2}, \texttt{img10} rather than
+\texttt{img1}, \texttt{img10}, \texttt{img2}).
+
+Both 8-bit and 16-bit images are supported; bit depth is auto-detected from
+the first image in the sequence.
+
+
+% =============================================================================
+\section{Installation}
+% =============================================================================
+
+\subsection{From Source}
+
+\begin{enumerate}
+    \item Ensure Python 3.10 or later is installed.
+    \item Clone or download the repository.
+    \item Create a virtual environment and install dependencies:
+\end{enumerate}
+
+\begin{lstlisting}[language=bash]
+cd bubbletrack
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+pip install -e .
+\end{lstlisting}
+
+\subsection{Running the Application}
+
+\begin{lstlisting}[language=bash]
+# Run via console entry point
+bubbletrack
+
+# Or run as a Python module
+python -m bubbletrack
+\end{lstlisting}
+
+\subsection{Standalone Executable}
+
+A pre-built Windows executable (\texttt{BubbleRadiusFitting.exe}) is available
+in the \texttt{dist/} directory. No Python installation is required. Simply
+double-click the executable to launch.
+
+
+% =============================================================================
+\section{Interface Overview}
+% =============================================================================
+
+The application uses a three-panel layout inspired by modern design principles.
+
+\subsection{Layout Structure}
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, frame=none, backgroundcolor=\color{white}]
++-------------------------------------------------------------+
+|  HEADER BAR                                   Status: Ready  |
++----------------+--+-----------------------------------------+
+|  LEFT SIDEBAR  |  |  MAIN CONTENT AREA                      |
+|  (collapsible) |<>|  +------------------+------------------+ |
+|  - Image Source|  |  | Original Image   | Binary Mask      | |
+|  - Mode Tabs   |  |  |                  |                  | |
+|  - Parameters  |  |  +------------------+------------------+ |
+|  - Post Proc.  |  |                                         |
+|                |  |  Frame Scrubber: [<] [======o=] [>] 1/N  |
+|                |  |                                         |
+|                |  |  R(t) Scatter Chart                     |
++----------------+--+-----------------------------------------+
+|  STATUS BAR: Frame 1/N | .tif | 3.2 um/px | ROI | Mode     |
++-------------------------------------------------------------+
+\end{lstlisting}
+
+\subsection{Header Bar}
+
+The dark header bar displays the application title and a colour-coded status
+indicator:
+
+\begin{center}
+\begin{tabular}{lll}
+    \toprule
+    \textbf{Colour} & \textbf{Meaning} & \textbf{Example} \\
+    \midrule
+    \textcolor{successgreen}{\faCircle} Green  & Success / Ready  & ``Ready'', ``R = 42.3 px'' \\
+    \textcolor{warningamber}{\faCircle} Amber  & In progress / Warning & ``Fitting\ldots'', ``Stopping\ldots'' \\
+    \textcolor{errorred}{\faCircle} Red    & Error            & ``Too few edge points'' \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Left Sidebar}
+
+The sidebar (340\,px wide) contains all controls, organised into four sections:
+
+\begin{enumerate}
+    \item \textbf{Image Source} --- folder selection and file information
+    \item \textbf{Mode Tabs} --- Pre-tune, Manual, Automatic
+    \item \textbf{Mode-specific Controls} --- parameters and action buttons
+    \item \textbf{Post Processing} --- export controls and physical unit settings
+\end{enumerate}
+
+The sidebar can be collapsed by clicking the toggle button (\texttt{<}/\texttt{>})
+between the sidebar and the main content area, providing more space for the
+image panels.
+
+\subsection{Image Panels}
+
+Two image panels are displayed side by side:
+
+\begin{itemize}
+    \item \textbf{Original Image} (left) --- the greyscale source image with
+          overlay graphics: green ROI rectangle, blue fitted circle, and red
+          edge detection points.
+    \item \textbf{Binary Mask} (right) --- the processed binary image showing
+          the detection result.
+\end{itemize}
+
+Each panel provides zoom controls in the top-right corner:
+
+\begin{center}
+\begin{tabular}{cl}
+    \toprule
+    \textbf{Control} & \textbf{Function} \\
+    \midrule
+    \texttt{[+]}  & Zoom in ($1.25\times$) \\
+    \texttt{[-]}  & Zoom out ($0.8\times$) \\
+    \texttt{[$\circlearrowleft$]} & Reset zoom to fit the view \\
+    Scroll wheel  & Zoom in/out ($1.15\times$ per notch, anchored at cursor) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Frame Scrubber}
+
+The frame scrubber bar sits between the image panels and the chart. It
+contains:
+
+\begin{itemize}
+    \item \textbf{Previous/Next buttons} (\texttt{<}/\texttt{>}) --- step one
+          frame backward or forward.
+    \item \textbf{Slider} --- drag to jump to any frame in the sequence.
+    \item \textbf{Frame label} --- displays the current frame number and total
+          (e.g.\ ``Frame: 42/500'').
+\end{itemize}
+
+\subsection{Radius Chart}
+
+A Matplotlib scatter plot showing fitted radius (pixels) versus frame number.
+Data points appear as red ``+'' markers. The chart updates in real time during
+fitting operations.
+
+\subsection{Status Bar}
+
+The bottom status bar displays contextual information:
+
+\begin{center}
+\begin{tabular}{ll}
+    \toprule
+    \textbf{Field} & \textbf{Example} \\
+    \midrule
+    Frame counter  & Frame: 42/500 \\
+    Image format   & Format: .tif \\
+    Physical scale & Scale: 3.2 \textmu m/px \\
+    ROI bounds     & ROI: [1--512, 1--512] \\
+    Current mode   & Mode: Pre-tune \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+
+% =============================================================================
+\section{Quick Start}
+% =============================================================================
+
+\begin{enumerate}
+    \item \textbf{Load images:} Click \textbf{Browse} in the Image Source
+          section and select a folder containing image files.
+
+    \item \textbf{Navigate frames:} Use the frame scrubber slider or the
+          \texttt{<}/\texttt{>} buttons to browse the image sequence.
+
+    \item \textbf{Select ROI:} In the \textbf{Pre-tune} tab, click
+          \textbf{Select ROI}, then drag a rectangle on the original image
+          to define the region of interest.
+
+    \item \textbf{Tune parameters:} Adjust the \textbf{Threshold} and
+          \textbf{Removing Factor} sliders until the bubble boundary appears
+          cleanly in the binary mask. Enable advanced filters if needed.
+
+    \item \textbf{Fit a single frame:} Click \textbf{Fit Current Frame}. The
+          fitted circle (blue) and edge points (red) appear on the original
+          image.
+
+    \item \textbf{Batch process:} Switch to the \textbf{Automatic} tab, set
+          the frame range, and click \textbf{Fit All}. Progress is shown in
+          real time.
+
+    \item \textbf{Export results:} In the \textbf{Post Processing} section,
+          set the physical parameters (FPS, scale) and click
+          \textbf{Export Pixel Data} or \textbf{Export Physical Data} to save
+          results as \texttt{.mat} files.
+\end{enumerate}
+
+
+% =============================================================================
+\section{Analysis Modes}
+% =============================================================================
+
+% ---------- Pre-tune ----------
+\subsection{Pre-tune Mode}
+
+Pre-tune mode is designed for parameter optimisation on a single frame. All
+parameter changes update the binary mask preview in real time (debounced at
+50\,ms), allowing rapid visual feedback.
+
+\subsubsection{Frame Selector}
+
+A spin box allows direct navigation to any frame in the sequence (1-indexed
+display). This is independent of the main frame scrubber.
+
+\subsubsection{Region of Interest (ROI)}
+
+\begin{enumerate}
+    \item Click \textbf{Select ROI}. The image border turns amber to indicate
+          selection mode.
+    \item Drag a rectangle on the original image panel.
+    \item The ROI coordinates are displayed in the sidebar and the status bar.
+\end{enumerate}
+
+By default, the ROI covers the entire image. Only pixels within the ROI are
+used for bubble detection and circle fitting. The ROI is shown as a green
+rectangle on the original image.
+
+\begin{tipbox}[Tip]
+    Choose an ROI that tightly encloses the bubble. A smaller ROI improves
+    detection accuracy and processing speed.
+\end{tipbox}
+
+\subsubsection{Threshold}
+
+\begin{center}
+\begin{tabular}{llll}
+    \toprule
+    \textbf{Range} & \textbf{Default} & \textbf{Unit} & \textbf{Effect} \\
+    \midrule
+    0--100 & 50 & \% & Adaptive binarisation sensitivity \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+The threshold slider controls the sensitivity of adaptive mean thresholding.
+Higher values produce more white (foreground) pixels; lower values produce
+a stricter foreground detection. The internal sensitivity value is computed as:
+\[
+    \text{sensitivity} = \frac{\text{slider value}}{100}
+\]
+
+\subsubsection{Removing Factor}
+
+\begin{center}
+\begin{tabular}{llll}
+    \toprule
+    \textbf{Range} & \textbf{Default} & \textbf{Unit} & \textbf{Effect} \\
+    \midrule
+    0--100 & 90 & \% & Minimum connected-component area (log scale) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+This slider removes small white speckles (noise) from the binary image.
+The mapping is logarithmic: a slider value of 0 removes components smaller
+than 10\,px$^2$; a slider value of 100 removes components up to 50\%\ of
+the ROI area.
+
+\subsubsection{Edge Crossing Flags}
+
+Four checkboxes (Top, Right, Down, Left) indicate which edges of the ROI the
+bubble extends beyond. When a flag is checked, the algorithm expands the
+binary image in the \emph{opposite} direction to correctly detect partial
+bubbles.
+
+\begin{notebox}[Note]
+    For example, if the bubble extends beyond the top and right edges of the
+    ROI, check \textbf{Top} and \textbf{Right}. The algorithm will expand
+    the image downward and leftward to compensate.
+\end{notebox}
+
+\subsubsection{Advanced Filters}
+
+The Advanced Filters section (initially collapsed) provides four optional
+image filters. Enable each filter via its checkbox.
+
+\begin{center}
+\begin{tabular}{lllp{6cm}}
+    \toprule
+    \textbf{Filter} & \textbf{Range} & \textbf{Default} & \textbf{Description} \\
+    \midrule
+    Gaussian Blur & 1--20 & 3 & Applied \emph{before} binarisation.
+        Smooths the greyscale image to suppress small noise such as tracer
+        particles. \\[4pt]
+    CLAHE & 1--40 & 2 & Applied \emph{before} binarisation. Contrast
+        Limited Adaptive Histogram Equalisation improves local contrast
+        when lighting is uneven. \\[4pt]
+    Morph Close & 1--30 & 5 & Applied \emph{after} binarisation. Fills
+        small holes and gaps inside the bubble boundary. \\[4pt]
+    Morph Open & 1--20 & 3 & Applied \emph{after} binarisation. Removes
+        thin protrusions and spurs on the bubble edge. \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{Parameter Presets}
+
+Click \textbf{Save Preset} to store the current parameter configuration
+(threshold, removing factor, edge flags, and all filter settings) to a JSON
+file. Click \textbf{Load Preset} to restore a previously saved configuration.
+
+\subsubsection{Fit Current Frame}
+
+Click \textbf{Fit Current Frame} to run the full detection and circle-fitting
+pipeline on the current frame. On success:
+
+\begin{itemize}
+    \item A \textcolor{primaryblue}{blue circle} is drawn on the original
+          image showing the fitted bubble boundary.
+    \item \textcolor{errorred}{Red dots} mark the detected edge points.
+    \item The header displays the fitted radius in pixels.
+    \item The $R(t)$ chart is updated.
+\end{itemize}
+
+% ---------- Manual ----------
+\subsection{Manual Mode}
+
+Manual mode allows you to select edge points by clicking directly on the
+bubble boundary.
+
+\begin{enumerate}
+    \item Click \textbf{Select Points}. The image border turns blue and the
+          cursor changes to a crosshair.
+    \item Click on the bubble edge to place points. Each click adds a red
+          marker on the image. The point counter updates in real time.
+    \item A minimum of \textbf{3 points} is required. The status indicator
+          turns green when enough points are collected.
+    \item Click \textbf{Done} to fit a circle through the selected points
+          using the Taubin algorithm.
+    \item Click \textbf{Clear} to discard all points and start over.
+\end{enumerate}
+
+\begin{tipbox}[Tip]
+    For best results, distribute the selected points evenly around the
+    bubble perimeter. Using 5--10 points typically gives reliable fits.
+\end{tipbox}
+
+% ---------- Automatic ----------
+\subsection{Automatic Mode}
+
+Automatic mode batch-processes a range of frames using the parameters
+configured in the Pre-tune tab.
+
+\subsubsection{Setting the Frame Range}
+
+Use the \textbf{From} and \textbf{To} spin boxes to define the processing
+range (1-indexed, inclusive). By default, the range covers all frames.
+
+\subsubsection{Running Batch Processing}
+
+\begin{enumerate}
+    \item Click \textbf{Fit All} to start processing. A background worker
+          thread processes each frame sequentially.
+    \item The progress bar and percentage label update in real time.
+    \item The original image, binary mask, and $R(t)$ chart are updated
+          periodically during processing (${\sim}150$\,ms intervals).
+    \item The fitted circle and edge points are displayed on the original
+          image for each processed frame.
+\end{enumerate}
+
+\subsubsection{Stopping}
+
+Click \textbf{Stop} to request a graceful stop. The worker finishes the
+current frame and then halts. All results computed so far are retained.
+
+\subsubsection{Clearing Results}
+
+Click \textbf{Clear} to discard all fitting results and reset the $R(t)$
+chart. This does not affect the loaded images or parameter settings.
+
+\begin{warnbox}[Warning]
+    Clicking \textbf{Clear} permanently removes all fitting results from
+    memory. Export your data before clearing if you need to keep the results.
+\end{warnbox}
+
+
+% =============================================================================
+\section{Post Processing and Export}
+% =============================================================================
+
+The Post Processing section (in the lower portion of the left sidebar)
+provides physical unit conversion parameters and two export options.
+
+\subsection{Physical Parameters}
+
+\begin{center}
+\begin{tabular}{llllp{5.5cm}}
+    \toprule
+    \textbf{Parameter} & \textbf{Range} & \textbf{Default} & \textbf{Unit} & \textbf{Description} \\
+    \midrule
+    FPS & 0.001--99\,999 & 10 & Hz, kHz, or MHz & Frame rate of the camera.
+        Select the unit from the dropdown (Hz, k, M). \\[4pt]
+    Scale & 0.001--9\,999 & 3.2 & \textmu m/px & Spatial calibration factor. \\[4pt]
+    Rmax Fit Length & 3--999 (odd) & 11 & frames & Number of frames used for
+        quadratic $R_{\max}$ interpolation (must be odd). \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Export Pixel Data}
+
+Click \textbf{Export Pixel Data} to save raw fitting results. A file dialog
+opens with the default filename \texttt{radius\_pixel.mat} in the image
+folder. The \texttt{.mat} file contains:
+
+\begin{center}
+\begin{tabular}{llp{7cm}}
+    \toprule
+    \textbf{Variable} & \textbf{Size} & \textbf{Description} \\
+    \midrule
+    \texttt{Radius} & $(1 \times N)$ & Fitted radius for each frame in pixels.
+        Unfitted frames contain $-1$. \\
+    \texttt{CircleFitPar} & $(N \times 2)$ & Circle centre coordinates
+        $[\text{row},\; \text{col}]$ for each frame. \\
+    \texttt{CircleXY} & $\{1 \times N\}$ & Cell array of edge-point
+        coordinate matrices $(M_i \times 2)$ for each frame. \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Export Physical Data}
+
+Click \textbf{Export Physical Data} to save time-resolved radius data in
+physical units. A file dialog opens with the default filename
+\texttt{radius\_time\_physical.mat}. The export process:
+
+\begin{enumerate}
+    \item Converts pixel radii to physical units using the scale factor.
+    \item Converts frame indices to time using the frame rate.
+    \item Identifies the frame with maximum radius.
+    \item Fits a quadratic curve $R(t) = at^2 + bt + c$ around the peak
+          using the specified fit window.
+    \item If the parabola is concave ($a < 0$), computes the sub-frame
+          peak: $t_{\text{peak}} = -b/(2a)$, $R_{\text{peak}} = (4ac - b^2)/(4a)$.
+    \item Shifts the time axis so $t = 0$ at the peak radius location.
+\end{enumerate}
+
+The \texttt{.mat} file contains:
+
+\begin{center}
+\begin{tabular}{llp{7cm}}
+    \toprule
+    \textbf{Variable} & \textbf{Size} & \textbf{Description} \\
+    \midrule
+    \texttt{t} & $(N{+}1 \times 1)$ & Time array in seconds, centred at
+        $R_{\max}$. \\
+    \texttt{R} & $(N{+}1 \times 1)$ & Radius array in \textmu m. \\
+    \texttt{RmaxAll} & scalar & Peak radius value in \textmu m. \\
+    \texttt{RmaxTimeLoc} & scalar & Time of peak radius in seconds. \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{notebox}[Note]
+    If the $R_{\max}$ fit window extends beyond the data boundaries, the
+    export will fail with an error message. Reduce the \textbf{Rmax Fit
+    Length} parameter or ensure the peak radius is sufficiently far from
+    the edges of the frame range.
+\end{notebox}
+
+
+% =============================================================================
+\section{Algorithm Overview}
+% =============================================================================
+
+This section provides a technical description of the image processing and
+circle-fitting pipeline.
+
+\subsection{Processing Pipeline}
+
+The detection pipeline consists of the following steps, executed in order:
+
+\begin{enumerate}
+    \item \textbf{Load and normalise} --- Read the raw image and normalise
+          pixel values to the $[0, 1]$ range based on the detected bit depth.
+
+    \item \textbf{Gaussian Blur} (optional) --- Apply a Gaussian smoothing
+          kernel with the specified $\sigma$ to suppress high-frequency noise.
+          Applied \emph{before} binarisation.
+
+    \item \textbf{CLAHE} (optional) --- Apply Contrast Limited Adaptive
+          Histogram Equalisation with the specified clip limit to improve
+          local contrast. Applied \emph{before} binarisation.
+
+    \item \textbf{Adaptive thresholding} --- Convert the greyscale image to
+          binary using local mean thresholding (OpenCV
+          \texttt{adaptiveThreshold}). The block size is computed
+          automatically as:
+          \[
+              B = 2 \left\lceil \frac{\min(H, W)}{16} \right\rceil + 1
+              \qquad (B \geq 3)
+          \]
+          The threshold offset is derived from the sensitivity parameter:
+          \[
+              C = (\text{sensitivity} - 0.5) \times 255
+          \]
+
+    \item \textbf{ROI extraction} --- Crop the binary image to the
+          user-defined region of interest.
+
+    \item \textbf{Boundary expansion} --- If the bubble extends beyond the
+          ROI, the image is doubled along the non-crossing edge direction
+          and filled with white pixels to complete partial bubbles.
+
+    \item \textbf{Small object removal} --- Connected components with area
+          below the removing factor threshold are removed.
+
+    \item \textbf{Morphological opening} (optional) --- Erosion followed by
+          dilation with a disk structuring element to remove thin protrusions.
+
+    \item \textbf{Morphological closing} (optional) --- Dilation followed by
+          erosion with a disk structuring element, then hole filling, to close
+          gaps in the bubble boundary.
+
+    \item \textbf{Inversion} --- The image is inverted so that the bubble
+          interior (dark in the original) becomes the foreground.
+
+    \item \textbf{Blob filtering} --- Connected components are labelled and
+          filtered by shape:
+          \begin{itemize}
+              \item Reject if major axis $> 2.2 \times$ short image side
+              \item Reject if eccentricity $> 1.6$ (major/minor axis ratio)
+              \item Select the largest remaining blob
+          \end{itemize}
+
+    \item \textbf{Edge detection} --- Extract the boundary using a
+          morphological gradient: dilate the blob mask with a $3 \times 3$
+          kernel, then XOR with the original mask.
+
+    \item \textbf{Crop back} --- If the image was expanded in step~6, crop
+          back to the original ROI dimensions.
+\end{enumerate}
+
+\subsection{Circle Fitting: Taubin Method}
+
+The application uses the Taubin algebraic method for circle fitting, which
+provides a robust least-squares estimate that is invariant to rotation and
+translation.
+
+Given $N \geq 3$ boundary points $\{(x_i, y_i)\}$, the algorithm:
+
+\begin{enumerate}
+    \item Computes the centroid $(\bar{x}, \bar{y})$ and centres the data.
+    \item Builds a covariance-based system from the centred coordinates.
+    \item Solves a characteristic polynomial via Newton's method (up to 20
+          iterations, tolerance $10^{-12}$).
+    \item Extracts the circle centre $(x_c, y_c)$ and radius $r$ from the
+          solution.
+\end{enumerate}
+
+\begin{tipbox}[Reference]
+    G.\ Taubin, ``Estimation Of Planar Curves, Surfaces And Nonplanar Space
+    Curves Defined By Implicit Equations, With Applications To Edge And Range
+    Image Segmentation,'' \emph{IEEE Trans.\ PAMI}, Vol.~13, pp.~1115--1138,
+    1991.
+\end{tipbox}
+
+\subsection{Radius Outlier Rejection}
+
+After circle fitting, the fitted radius is compared against the maximum image
+dimension (the longer side of the image). If the radius exceeds this value or
+is \texttt{NaN}, the result is rejected and the frame is marked as unfitted.
+
+\subsection{$R_{\max}$ Quadratic Interpolation}
+
+During physical data export, the software identifies the maximum radius and
+fits a parabola to the surrounding data points:
+
+\begin{equation}
+    R(t) = at^2 + bt + c
+\end{equation}
+
+If the fit yields a concave parabola ($a < 0$), the sub-frame peak is
+computed analytically:
+\begin{align}
+    t_{\text{peak}} &= -\frac{b}{2a} \\
+    R_{\text{peak}} &= \frac{4ac - b^2}{4a}
+\end{align}
+
+This provides sub-frame temporal precision for determining the maximum bubble
+radius.
+
+
+% =============================================================================
+\section{Parameter Reference}
+% =============================================================================
+
+\subsection{Image Processing Parameters}
+
+\begin{center}
+\begin{tabular}{llllp{4.5cm}}
+    \toprule
+    \textbf{Parameter} & \textbf{Range} & \textbf{Default} & \textbf{Unit}
+        & \textbf{Effect} \\
+    \midrule
+    Threshold & 0--100 & 50 & \% & Adaptive binarisation sensitivity.
+        Higher = more foreground pixels. \\[3pt]
+    Removing Factor & 0--100 & 90 & \% & Minimum component area
+        (logarithmic scale). Higher = removes larger noise. \\[3pt]
+    Gaussian $\sigma$ & 1--20 & 3 & px & Pre-binarisation smoothing
+        strength. \\[3pt]
+    CLAHE Clip & 1--40 & 2 & --- & Contrast enhancement strength. \\[3pt]
+    Morph Close & 1--30 & 5 & px & Post-binarisation gap-filling
+        radius. \\[3pt]
+    Morph Open & 1--20 & 3 & px & Post-binarisation spur-removal
+        radius. \\[3pt]
+    Edge Flags & 4 bools & all off & --- & Bubble crosses
+        [Top, Right, Down, Left] edges. \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Physical Conversion Parameters}
+
+\begin{center}
+\begin{tabular}{lllll}
+    \toprule
+    \textbf{Parameter} & \textbf{Range} & \textbf{Default} & \textbf{Unit}
+        & \textbf{Effect} \\
+    \midrule
+    FPS & 0.001--99\,999 & 10 & Hz/kHz/MHz & Camera frame rate \\
+    Scale & 0.001--9\,999 & 3.2 & \textmu m/px & Pixel calibration \\
+    Rmax Fit Length & 3--999 & 11 & frames & Quadratic fit window (odd) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Internal Constraints}
+
+\begin{center}
+\begin{tabular}{lll}
+    \toprule
+    \textbf{Constraint} & \textbf{Value} & \textbf{Description} \\
+    \midrule
+    Min.\ edge points & 3 & Required for circle fitting \\
+    Max.\ radius & $\max(H, W)$ & Image long-side dimension \\
+    Min.\ hole area & 40\,px$^2$ & Holes smaller than this are filled \\
+    Max.\ axis ratio & 2.2 & Blob major axis / short image side \\
+    Max.\ eccentricity & 1.6 & Major / minor axis ratio \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+
+% =============================================================================
+\section{Typical Workflows}
+% =============================================================================
+
+\subsection{Workflow 1: Single-Frame Analysis}
+
+This workflow is useful for quickly inspecting individual frames or verifying
+parameter settings.
+
+\begin{enumerate}
+    \item Load the image folder via \textbf{Browse}.
+    \item Navigate to the frame of interest using the frame scrubber.
+    \item In the \textbf{Pre-tune} tab:
+    \begin{enumerate}[label=\alph*.]
+        \item Select an ROI around the bubble.
+        \item Adjust \textbf{Threshold} until the bubble interior is clearly
+              segmented.
+        \item Increase \textbf{Removing Factor} to eliminate noise spots.
+        \item Enable \textbf{Gaussian Blur} if small particles (e.g.\ tracer
+              beads) are present.
+        \item Enable \textbf{CLAHE} if lighting is uneven.
+        \item Check edge flags if the bubble is partially outside the ROI.
+    \end{enumerate}
+    \item Click \textbf{Fit Current Frame} and inspect the result.
+    \item Optionally save the parameter preset for later use.
+\end{enumerate}
+
+\subsection{Workflow 2: Batch Processing}
+
+This is the primary workflow for extracting $R(t)$ data from a complete image
+sequence.
+
+\begin{enumerate}
+    \item Complete the parameter tuning (Workflow~1) on a representative frame.
+    \item Switch to the \textbf{Automatic} tab.
+    \item Set the \textbf{From} and \textbf{To} frame numbers.
+    \item Click \textbf{Fit All}. Monitor progress via the progress bar and
+          the $R(t)$ chart.
+    \item Once complete, review the chart for outliers or missing data points.
+    \item In \textbf{Post Processing}:
+    \begin{enumerate}[label=\alph*.]
+        \item Set the camera \textbf{FPS} and spatial \textbf{Scale}.
+        \item Click \textbf{Export Pixel Data} for raw results.
+        \item Click \textbf{Export Physical Data} for time-resolved
+              physical-unit results with $R_{\max}$ interpolation.
+    \end{enumerate}
+\end{enumerate}
+
+\subsection{Workflow 3: Manual Point Selection}
+
+Use this workflow when the automatic detection fails to identify the bubble
+boundary correctly (e.g.\ due to poor contrast or complex shapes).
+
+\begin{enumerate}
+    \item Navigate to the target frame.
+    \item Switch to the \textbf{Manual} tab.
+    \item Click \textbf{Select Points} and click 5--10 points around the
+          bubble edge.
+    \item Click \textbf{Done} to fit the circle.
+    \item Repeat for additional frames if needed.
+    \item Export results as in Workflow~2.
+\end{enumerate}
+
+
+% =============================================================================
+\section{Troubleshooting}
+% =============================================================================
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{4.5cm}p{4cm}p{5cm}}
+    \toprule
+    \textbf{Problem} & \textbf{Possible Cause} & \textbf{Solution} \\
+    \midrule
+
+    ``No images found'' after selecting a folder &
+    Folder contains no supported image files &
+    Ensure the folder contains \texttt{.tiff}, \texttt{.tif}, \texttt{.png},
+    \texttt{.jpg}, or \texttt{.bmp} files. \\
+
+    Binary mask is mostly white or mostly black &
+    Threshold too high or too low &
+    Adjust the Threshold slider until the bubble boundary is clearly
+    visible. \\
+
+    Small noise spots remain in the binary mask &
+    Removing Factor too low &
+    Increase the Removing Factor slider. Enable Gaussian Blur to suppress
+    fine noise. \\
+
+    ``Too few edge points'' after fitting &
+    Bubble not detected or ROI too small &
+    Enlarge the ROI, adjust the Threshold, or check the edge flags. \\
+
+    ``Radius outlier, skipped'' &
+    Fitted circle is unreasonably large &
+    The detection picked up the wrong region. Adjust Threshold, Removing
+    Factor, or use Morph Open/Close to clean the boundary. \\
+
+    Bubble boundary has gaps &
+    Weak contrast at some edges &
+    Enable \textbf{CLAHE} to improve local contrast, or enable
+    \textbf{Morph Close} to fill gaps. \\
+
+    Bubble boundary has spurs or protrusions &
+    Noise connected to the boundary &
+    Enable \textbf{Morph Open} to remove thin protrusions. \\
+
+    Stop button does not respond immediately &
+    Worker finishes current frame before stopping &
+    This is expected. The stop is graceful---wait a moment for the
+    current frame to complete. \\
+
+    Export fails with ``Rmax\_Fit\_Length exceeds data range'' &
+    Fit window is wider than available data around the peak &
+    Reduce the \textbf{Rmax Fit Length} parameter, or process more
+    frames around the peak radius. \\
+
+    Application window is too small &
+    Display scaling or resolution issue &
+    The window can be freely resized. Collapse the left sidebar for
+    more image space. \\
+
+    \bottomrule
+\end{tabular}
+\end{center}
+
+
+% =============================================================================
+\section{Keyboard and Mouse Reference}
+% =============================================================================
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{llll}
+    \toprule
+    \textbf{Mode} & \textbf{Input} & \textbf{Action} & \textbf{Result} \\
+    \midrule
+    Any & Scroll wheel (on image) & Zoom in/out & $1.15\times$ per notch \\
+    Any & Click \texttt{[+]}/\texttt{[-]}/\texttt{[$\circlearrowleft$]}
+        & Zoom/Reset & Button-based zoom control \\
+    Normal & Drag on image & Pan & Scroll hand drag \\
+    Point  & Left-click on image & Place point & Red dot added \\
+    ROI    & Left-drag on image & Draw rectangle & ROI defined \\
+    Any & Click \texttt{<}/\texttt{>} & Step frame & $\pm 1$ frame \\
+    Any & Drag frame slider & Jump to frame & Instant navigation \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+
+% =============================================================================
+\section{Export File Format Details}
+% =============================================================================
+
+All exported files use the MATLAB \texttt{.mat} (v5) format and can be loaded
+in MATLAB using the \texttt{load} function or in Python using
+\texttt{scipy.io.loadmat}.
+
+\subsection{Pixel Data (\texttt{radius\_pixel.mat})}
+
+\begin{lstlisting}[language=Matlab]
+data = load('radius_pixel.mat');
+
+% Radius array (1 x N), in pixels. -1 = unfitted frame.
+R = data.Radius;
+
+% Circle centres (N x 2), [row, col] for each frame.
+centres = data.CircleFitPar;
+
+% Edge points: cell array {1 x N}.
+% Each cell contains an (M x 2) matrix of [row, col] coordinates.
+edges = data.CircleXY;
+\end{lstlisting}
+
+\subsection{Physical Data (\texttt{radius\_time\_physical.mat})}
+
+\begin{lstlisting}[language=Matlab]
+data = load('radius_time_physical.mat');
+
+% Time array (N+1 x 1), in seconds. Centred at Rmax.
+t = data.t;
+
+% Radius array (N+1 x 1), in micrometres.
+R = data.R;
+
+% Maximum radius (scalar), in micrometres.
+Rmax = data.RmaxAll;
+
+% Time of maximum radius (scalar), in seconds.
+t_Rmax = data.RmaxTimeLoc;
+
+% Plot R(t)
+figure;
+plot(t * 1e6, R, 'r.');  % convert to microseconds
+xlabel('Time (\mus)');
+ylabel('Radius (\mum)');
+title(sprintf('R_{max} = %.1f \\mum', Rmax));
+\end{lstlisting}
+
+
+% =============================================================================
+\section*{Acknowledgements}
+% =============================================================================
+\addcontentsline{toc}{section}{Acknowledgements}
+
+This software was developed at The University of Texas at Austin. The circle
+fitting algorithm is based on the Taubin method as described in:
+
+\begin{quote}
+    G.\ Taubin, ``Estimation Of Planar Curves, Surfaces And Nonplanar Space
+    Curves Defined By Implicit Equations, With Applications To Edge And Range
+    Image Segmentation,'' \emph{IEEE Trans.\ PAMI}, Vol.~13, pp.~1115--1138,
+    1991.
+\end{quote}
+
+% =============================================================================
+\end{document}

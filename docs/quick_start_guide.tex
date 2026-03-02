@@ -1,0 +1,248 @@
+% =============================================================================
+%  Bubble Radius Fitting — Quick Start Guide
+%  Author: Zixiang (Zach) Tong, The University of Texas at Austin
+% =============================================================================
+\documentclass[11pt, letterpaper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tcolorbox}
+
+% ---------- Colours ----------
+\definecolor{primaryblue}{HTML}{3B82F6}
+\definecolor{darknavy}{HTML}{0F172A}
+\definecolor{successgreen}{HTML}{22C55E}
+\definecolor{errorred}{HTML}{EF4444}
+\definecolor{dimgrey}{HTML}{94A3B8}
+\definecolor{lightslate}{HTML}{F8FAFC}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    urlcolor=primaryblue,
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{dimgrey}{Bubble Radius Fitting --- Quick Start Guide}}
+\fancyhead[R]{\small\textcolor{dimgrey}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\titleformat{\section}
+  {\Large\bfseries\color{darknavy}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{darknavy}}{\thesubsection}{1em}{}
+
+\newtcolorbox{tipbox}[1][]{
+    colback=blue!5, colframe=primaryblue,
+    fonttitle=\bfseries, title={#1},
+    boxrule=0.5pt, arc=4pt,
+}
+
+% =============================================================================
+\begin{document}
+
+% -------- Title --------
+\begin{center}
+    {\Huge\bfseries\color{darknavy} Bubble Radius Fitting}\\[0.4cm]
+    {\LARGE\color{primaryblue} Quick Start Guide}\\[0.8cm]
+    {\large Zixiang (Zach) Tong\quad---\quad The University of Texas at Austin}\\[0.3cm]
+    {\large \today}
+\end{center}
+
+\vspace{0.5cm}
+\hrule
+\vspace{0.8cm}
+
+
+% =============================================================================
+\section{Launch the Application}
+% =============================================================================
+
+\textbf{Option A --- From source:}
+\begin{verbatim}
+    cd bubbletrack
+    .venv\Scripts\activate
+    bubbletrack
+\end{verbatim}
+
+\textbf{Option B --- Standalone:} Double-click \texttt{BubbleRadiusFitting.exe}.
+
+
+% =============================================================================
+\section{Load Images}
+% =============================================================================
+
+\begin{enumerate}
+    \item In the left sidebar, click \textbf{Browse}.
+    \item Select the folder containing your image sequence
+          (\texttt{.tiff/.tif/.png/.jpg/.bmp}).
+    \item The first image loads automatically. Use the \textbf{frame scrubber}
+          slider at the bottom to browse frames.
+\end{enumerate}
+
+
+% =============================================================================
+\section{Set Up Parameters (Pre-tune Tab)}
+% =============================================================================
+
+\begin{enumerate}
+    \item \textbf{Select ROI:} Click \textbf{Select ROI}, then drag a
+          rectangle on the image to enclose the bubble.
+
+    \item \textbf{Adjust Threshold:} Drag the slider until the bubble
+          interior is clearly white in the binary mask panel on the right.
+
+    \item \textbf{Adjust Removing Factor:} Increase to remove small noise
+          spots from the binary image.
+
+    \item \textbf{Edge Flags:} If the bubble extends beyond the ROI boundary,
+          check the corresponding edge (Top / Right / Down / Left).
+
+    \item \textbf{Advanced Filters} (optional, expand the collapsible
+          section):
+          \begin{itemize}
+              \item \textbf{Gaussian Blur} --- smooths noise before
+                    binarisation (e.g.\ tracer particles).
+              \item \textbf{CLAHE} --- improves contrast when lighting is
+                    uneven.
+              \item \textbf{Morph Close} --- fills small holes inside the
+                    bubble boundary.
+              \item \textbf{Morph Open} --- removes thin spurs on the bubble
+                    edge.
+          \end{itemize}
+
+    \item \textbf{Test:} Click \textbf{Fit Current Frame}. A
+          \textcolor{primaryblue}{blue circle} and
+          \textcolor{errorred}{red edge points} should appear on the original
+          image.
+\end{enumerate}
+
+\begin{tipbox}[Tip]
+    Click \textbf{Save Preset} to store your tuned parameters to a JSON file.
+    Use \textbf{Load Preset} to restore them in future sessions.
+\end{tipbox}
+
+
+% =============================================================================
+\section{Batch Processing (Automatic Tab)}
+% =============================================================================
+
+\begin{enumerate}
+    \item Switch to the \textbf{Automatic} tab.
+    \item Set the \textbf{From} and \textbf{To} frame numbers (default: all
+          frames).
+    \item Click \textbf{Fit All}. The progress bar, image panels, and $R(t)$
+          chart update in real time.
+    \item Click \textbf{Stop} at any time to pause (results so far are kept).
+    \item Click \textbf{Clear} to discard all results and start over.
+\end{enumerate}
+
+
+% =============================================================================
+\section{Manual Fitting (Manual Tab)}
+% =============================================================================
+
+Use this when automatic detection does not work well for a particular frame.
+
+\begin{enumerate}
+    \item Switch to the \textbf{Manual} tab.
+    \item Click \textbf{Select Points}, then click 3 or more points on the
+          bubble edge (5--10 recommended).
+    \item Click \textbf{Done} to fit a circle through the selected points.
+    \item Click \textbf{Clear} to reset and try again.
+\end{enumerate}
+
+
+% =============================================================================
+\section{Export Results}
+% =============================================================================
+
+In the \textbf{Post Processing} section at the bottom of the sidebar:
+
+\begin{enumerate}
+    \item Set \textbf{FPS} (frame rate) and its unit (Hz / kHz / MHz).
+    \item Set \textbf{Scale} (\textmu m/px).
+    \item Set \textbf{Rmax Fit Length} (odd number; window for peak
+          interpolation).
+\end{enumerate}
+
+Then click one of the two export buttons:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lp{8cm}}
+    \toprule
+    \textbf{Button} & \textbf{What it saves} \\
+    \midrule
+    \textbf{Export Pixel Data} &
+        Radius (px), circle centres, and edge points for every frame.
+        Default filename: \texttt{radius\_pixel.mat} \\
+    \textbf{Export Physical Data} &
+        Time (s) vs.\ Radius (\textmu m) with $R_{\max}$ quadratic
+        interpolation.
+        Default filename: \texttt{radius\_time\_physical.mat} \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+A save dialog will open; choose the location and filename, then confirm.
+
+
+% =============================================================================
+\section{Loading Results in MATLAB}
+% =============================================================================
+
+\begin{verbatim}
+    % Pixel data
+    data = load('radius_pixel.mat');
+    R_px = data.Radius;           % 1 x N, pixels (-1 = unfitted)
+
+    % Physical data
+    data = load('radius_time_physical.mat');
+    plot(data.t * 1e6, data.R, 'r.');
+    xlabel('Time (\mus)');
+    ylabel('Radius (\mum)');
+\end{verbatim}
+
+
+% =============================================================================
+\section{Common Issues}
+% =============================================================================
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{5cm}p{7.5cm}}
+    \toprule
+    \textbf{Problem} & \textbf{Fix} \\
+    \midrule
+    Binary mask all white / all black &
+        Adjust the Threshold slider. \\
+    Noise spots in binary mask &
+        Increase Removing Factor; enable Gaussian Blur. \\
+    ``Too few edge points'' &
+        Enlarge ROI; adjust Threshold; check edge flags. \\
+    ``Radius outlier, skipped'' &
+        Tune Threshold or filters to get a cleaner boundary. \\
+    Gaps in bubble boundary &
+        Enable CLAHE and/or Morph Close. \\
+    Export error about fit length &
+        Reduce Rmax Fit Length or process more frames. \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\vfill
+\begin{center}
+    \small\textcolor{dimgrey}{%
+        Bubble Radius Fitting --- developed at The University of Texas at Austin
+    }
+\end{center}
+
+\end{document}
