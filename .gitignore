@@ -9,7 +9,18 @@ build/
 
 # IDE
 .vscode/
+.claude/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Legacy directories (kept locally, not in repo)
+matlab_implementation/
+Modern GUI Design for Tabs/
+
+# Example image data (too large for git)
+bubbletrack/examples/
+
+# Root-level icon (resource copy lives in bubbletrack/src/bubbletrack/resources/)
+/icon.ico

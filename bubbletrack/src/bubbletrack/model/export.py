@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 from scipy.io import savemat
 
@@ -14,12 +12,12 @@ def export_r_data(
     centers: np.ndarray,
     edge_pts: list,
 ) -> None:
-    """Save raw fitting results to ``R_data.mat``.
+    """Save raw fitting results to a ``.mat`` file.
 
     Parameters
     ----------
     save_path : str
-        Directory or file path (file's directory is used).
+        Full file path for the output ``.mat`` file.
     radius : (N,) array
         Fitted radii in pixels (-1 for unprocessed frames).
     centers : (N, 2) array
@@ -32,8 +30,7 @@ def export_r_data(
         (e if e is not None else np.empty((0, 2))) for e in edge_pts
     ]
 
-    out = os.path.join(os.path.dirname(save_path) or save_path, "R_data.mat")
-    savemat(out, {
+    savemat(save_path, {
         "Radius": radius.reshape(1, -1),
         "CircleFitPar": centers,
         "CircleXY": np.array(cleaned_edges, dtype=object),
@@ -47,12 +44,12 @@ def export_rof_t_data(
     fps: float,
     rmax_fit_length: int,
 ) -> tuple[bool, str]:
-    """Convert pixel radii to physical units and save ``RofTdata.mat``.
+    """Convert pixel radii to physical units and save to a ``.mat`` file.
 
     Parameters
     ----------
     save_path : str
-        Directory or file path.
+        Full file path for the output ``.mat`` file.
     radius : (N,) array
         Fitted radii in pixels.
     um2px : float
@@ -115,8 +112,7 @@ def export_rof_t_data(
     rmax_all_phys = rmax_all * deltax
     rmax_time_loc_phys = rmax_loc * deltat
 
-    out = os.path.join(os.path.dirname(save_path) or save_path, "RofTdata.mat")
-    savemat(out, {
+    savemat(save_path, {
         "t": t_out.reshape(-1, 1),
         "R": R_out.reshape(-1, 1),
         "RmaxAll": float(rmax_all_phys),

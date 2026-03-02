@@ -42,6 +42,7 @@ class BatchWorker(QThread):
         clahe_clip: float = 0.0,
         closing_radius: int = 0,
         opening_radius: int = 0,
+        max_radius: float = float("inf"),
     ):
         super().__init__()
         self._images = images
@@ -57,6 +58,7 @@ class BatchWorker(QThread):
         self._clahe_clip = clahe_clip
         self._closing_radius = closing_radius
         self._opening_radius = opening_radius
+        self._max_radius = max_radius
         self._stop = False
 
     def request_stop(self):
@@ -85,6 +87,9 @@ class BatchWorker(QThread):
                 )
                 if edge_xy.shape[0] >= 3:
                     rc, cc, radius = circle_fit_taubin(edge_xy)
+                    if np.isnan(radius) or radius > self._max_radius:
+                        radius = -1.0
+                        edge_xy = np.empty((0, 2))
                 else:
                     radius = -1.0
                     edge_xy = np.empty((0, 2))

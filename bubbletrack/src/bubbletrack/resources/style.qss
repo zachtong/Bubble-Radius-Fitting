@@ -1,5 +1,5 @@
 /* ============================================================
-   BubbleTrack v2.0  —  Figma-inspired QSS theme
+   Bubble Radius Fitting  —  Figma-inspired QSS theme
    Colour palette from CLAUDE.md design spec
    ============================================================ */
 
@@ -136,9 +136,6 @@ QSpinBox, QDoubleSpinBox, QLineEdit {
     padding: 4px 8px;
     background: white;
     min-height: 24px;
-}
-QSpinBox:focus, QDoubleSpinBox:focus, QLineEdit:focus {
-    border-color: #3B82F6;
 }
 
 /* ---------- Check boxes ---------- */

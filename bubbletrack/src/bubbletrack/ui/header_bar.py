@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 
 class HeaderBar(QWidget):
@@ -15,7 +15,7 @@ class HeaderBar(QWidget):
         layout.setContentsMargins(16, 0, 16, 0)
 
         # App title
-        title = QLabel("BubbleTrack v2.0")
+        title = QLabel("Bubble Radius Fitting")
         title.setStyleSheet("font-size:15px; font-weight:bold;")
         layout.addWidget(title)
 
@@ -28,11 +28,6 @@ class HeaderBar(QWidget):
         layout.addWidget(self._status_label)
 
         layout.addStretch()
-
-        # Settings button
-        self._settings_btn = QPushButton("\u2699")
-        self._settings_btn.setToolTip("Settings")
-        layout.addWidget(self._settings_btn)
 
     def set_status(self, text: str, colour: str = "#22C55E"):
         self._status_label.setText(text)

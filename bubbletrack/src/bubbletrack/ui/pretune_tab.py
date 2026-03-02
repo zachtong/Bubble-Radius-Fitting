@@ -37,6 +37,7 @@ class PreTuneTab(QWidget):
         self._frame_spin = QSpinBox()
         self._frame_spin.setMinimum(1)
         self._frame_spin.setValue(1)
+        self._frame_spin.setMinimumWidth(70)
         self._frame_spin.valueChanged.connect(
             lambda v: self.frame_selected.emit(v - 1)
         )
@@ -68,6 +69,11 @@ class PreTuneTab(QWidget):
 
         # -- Threshold slider --
         self._threshold = SliderInput("Threshold", 0, 100, 50, 1, 0)
+        self._threshold.setToolTip(
+            "Adaptive binarization sensitivity.\n"
+            "Higher = more white pixels (bubble interior brighter).\n"
+            "Lower = more black pixels (stricter foreground detection)."
+        )
         self._threshold.value_changed.connect(
             lambda v: self.threshold_changed.emit(v / 100.0)
         )
@@ -75,6 +81,11 @@ class PreTuneTab(QWidget):
 
         # -- Removing factor slider --
         self._removing_factor = SliderInput("Remove", 0, 100, 90, 1, 0)
+        self._removing_factor.setToolTip(
+            "Remove small white speckles from the binary image.\n"
+            "Higher = remove larger noise regions.\n"
+            "Increase if small debris/beads remain after binarization."
+        )
         self._removing_factor.value_changed.connect(
             lambda v: self.removing_factor_changed.emit(int(v))
         )
@@ -82,6 +93,11 @@ class PreTuneTab(QWidget):
 
         # -- Edge checkboxes --
         edge_group = QGroupBox("Bubble crosses edge")
+        edge_group.setToolTip(
+            "Check the edges where the bubble extends beyond the ROI boundary.\n"
+            "This helps the algorithm correctly detect partial bubbles\n"
+            "by expanding the image in the opposite direction."
+        )
         edge_layout = QHBoxLayout(edge_group)
         self._edge_checks: list[QCheckBox] = []
         for name in ("Top", "Right", "Down", "Left"):
@@ -95,16 +111,37 @@ class PreTuneTab(QWidget):
         filters_section = CollapsibleSection("Advanced Filters", collapsed=True)
 
         self._gauss_slider = ToggleSliderInput(
-            "Gauss Blur", 0.5, 20, 3.0, 0.5, decimals=1,
+            "Gauss Blur", 1, 20, 3, 1, decimals=0,
+        )
+        self._gauss_slider.setToolTip(
+            "Gaussian blur applied BEFORE binarization.\n"
+            "Smooths the grayscale image to suppress small noise (e.g. tracer beads).\n"
+            "Sigma controls blur strength: higher = stronger smoothing."
         )
         self._clahe_slider = ToggleSliderInput(
-            "CLAHE", 0.5, 40, 2.0, 0.5, decimals=1,
+            "CLAHE", 1, 40, 2, 1, decimals=0,
+        )
+        self._clahe_slider.setToolTip(
+            "Contrast Limited Adaptive Histogram Equalization.\n"
+            "Applied BEFORE binarization to improve local contrast.\n"
+            "Useful when lighting is uneven across the image.\n"
+            "Clip limit controls enhancement strength: higher = stronger contrast."
         )
         self._close_slider = ToggleSliderInput(
             "Morph Close", 1, 30, 5, 1, decimals=0,
         )
+        self._close_slider.setToolTip(
+            "Morphological closing applied AFTER binarization.\n"
+            "Fills small holes and gaps inside the bubble boundary.\n"
+            "Radius controls the structuring element size: higher = fills larger gaps."
+        )
         self._open_slider = ToggleSliderInput(
             "Morph Open", 1, 20, 3, 1, decimals=0,
+        )
+        self._open_slider.setToolTip(
+            "Morphological opening applied AFTER binarization.\n"
+            "Removes thin protrusions and spurs on the bubble edge.\n"
+            "Radius controls the structuring element size: higher = removes larger spurs."
         )
 
         for s in (self._gauss_slider, self._clahe_slider,

@@ -21,7 +21,7 @@ class LeftPanel(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("LeftPanel")
-        self.setFixedWidth(300)
+        self.setFixedWidth(340)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
 from bubbletrack.ui.main_window import MainWindow
@@ -15,9 +16,15 @@ def main():
     app = QApplication(sys.argv)
 
     # Load QSS stylesheet
-    qss_path = Path(__file__).parent / "resources" / "style.qss"
+    res = Path(__file__).parent / "resources"
+    qss_path = res / "style.qss"
     if qss_path.exists():
         app.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+
+    # Application icon
+    icon_path = res / "icon.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     window = MainWindow()
     controller = AppController(window)

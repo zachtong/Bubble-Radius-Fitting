@@ -31,6 +31,7 @@ class ManualTab(QWidget):
         self._frame_spin = QSpinBox()
         self._frame_spin.setMinimum(1)
         self._frame_spin.setValue(1)
+        self._frame_spin.setMinimumWidth(70)
         self._frame_spin.valueChanged.connect(
             lambda v: self.frame_selected.emit(v - 1)
         )

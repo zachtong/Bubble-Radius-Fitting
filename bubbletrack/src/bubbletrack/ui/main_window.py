@@ -21,8 +21,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("BubbleTrack v2.0")
-        self.setMinimumSize(1200, 800)
+        self.setWindowTitle("Bubble Radius Fitting")
+        self.setMinimumSize(1280, 960)
 
         central = QWidget()
         self.setCentralWidget(central)

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
-    QComboBox, QDoubleSpinBox, QFileDialog, QGridLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QSpinBox, QVBoxLayout, QWidget,
+    QComboBox, QDoubleSpinBox, QGridLayout, QHBoxLayout, QLabel,
+    QPushButton, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from bubbletrack.ui.widgets import CollapsibleSection
@@ -22,62 +22,51 @@ class PostProcessing(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        section = CollapsibleSection("Post Processing", collapsed=True)
+        section = CollapsibleSection("Post Processing", collapsed=False)
 
+        # -- Physical conversion parameters --
         grid = QGridLayout()
         grid.setSpacing(6)
 
-        # Save path
-        grid.addWidget(QLabel("Save Path:"), 0, 0)
-        self._path_edit = QLineEdit()
-        self._path_edit.setPlaceholderText("Select output folder...")
-        self._path_edit.setReadOnly(True)
-        grid.addWidget(self._path_edit, 0, 1)
-        self._browse_btn = QPushButton("...")
-        self._browse_btn.setFixedWidth(32)
-        self._browse_btn.setObjectName("secondaryBtn")
-        self._browse_btn.clicked.connect(self._browse)
-        grid.addWidget(self._browse_btn, 0, 2)
-
         # FPS with unit selector
-        grid.addWidget(QLabel("FPS:"), 1, 0)
+        grid.addWidget(QLabel("FPS:"), 0, 0)
         self._fps_spin = QDoubleSpinBox()
         self._fps_spin.setRange(0.001, 99999)
         self._fps_spin.setDecimals(1)
         self._fps_spin.setValue(10)
-        grid.addWidget(self._fps_spin, 1, 1)
+        grid.addWidget(self._fps_spin, 0, 1)
         self._fps_unit = QComboBox()
         self._fps_unit.addItems(["Hz", "k", "M"])
         self._fps_unit.setCurrentIndex(2)  # default M
-        grid.addWidget(self._fps_unit, 1, 2)
+        grid.addWidget(self._fps_unit, 0, 2)
 
         # um/px
-        grid.addWidget(QLabel("\u00b5m/px:"), 2, 0)
+        grid.addWidget(QLabel("\u00b5m/px:"), 1, 0)
         self._scale_spin = QDoubleSpinBox()
         self._scale_spin.setRange(0.001, 9999)
         self._scale_spin.setDecimals(3)
         self._scale_spin.setValue(3.2)
-        grid.addWidget(self._scale_spin, 2, 1, 1, 2)
+        grid.addWidget(self._scale_spin, 1, 1, 1, 2)
 
         # Rmax fit length
-        grid.addWidget(QLabel("Rmax Fit:"), 3, 0)
+        grid.addWidget(QLabel("Rmax Fit:"), 2, 0)
         self._fit_len_spin = QSpinBox()
         self._fit_len_spin.setRange(3, 999)
         self._fit_len_spin.setSingleStep(2)
         self._fit_len_spin.setValue(11)
-        grid.addWidget(self._fit_len_spin, 3, 1, 1, 2)
+        grid.addWidget(self._fit_len_spin, 2, 1, 1, 2)
 
         container = QWidget()
         container.setLayout(grid)
         section.add_widget(container)
 
-        # Export buttons
+        # -- Export buttons --
         btn_row = QHBoxLayout()
-        self._export_r_btn = QPushButton("Export R_data")
+        self._export_r_btn = QPushButton("Export Pixel Data")
         self._export_r_btn.clicked.connect(self.export_r_data_clicked)
         btn_row.addWidget(self._export_r_btn)
 
-        self._export_rt_btn = QPushButton("Export R(t)")
+        self._export_rt_btn = QPushButton("Export Physical Data")
         self._export_rt_btn.clicked.connect(self.export_rof_t_clicked)
         btn_row.addWidget(self._export_rt_btn)
 
@@ -91,14 +80,6 @@ class PostProcessing(QWidget):
         section.add_widget(self._status)
 
         layout.addWidget(section)
-
-    def _browse(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Export Folder")
-        if folder:
-            self._path_edit.setText(folder)
-
-    def get_save_path(self) -> str:
-        return self._path_edit.text()
 
     def get_fps(self) -> float:
         multipliers = {"Hz": 1, "k": 1_000, "M": 1_000_000}

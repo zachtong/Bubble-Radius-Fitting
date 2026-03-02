@@ -13,10 +13,10 @@ class RadiusChart(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setMinimumHeight(280)
-        self.setMaximumHeight(400)
+        self.setMinimumHeight(350)
+        self.setMaximumHeight(500)
 
-        self._fig = Figure(figsize=(6, 3), dpi=100)
+        self._fig = Figure(figsize=(6, 5), dpi=100)
         self._fig.patch.set_facecolor("#F8FAFC")
         self._ax = self._fig.add_subplot(111)
         self._canvas = FigureCanvasQTAgg(self._fig)

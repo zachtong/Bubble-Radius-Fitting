@@ -47,7 +47,7 @@ class SliderInput(QWidget):
             self._spin = QSpinBox()
         self._spin.setRange(int(min_val * self._scale), int(max_val * self._scale))
         self._spin.setValue(int(default * self._scale))
-        self._spin.setFixedWidth(64)
+        self._spin.setFixedWidth(72)
         layout.addWidget(self._spin)
 
         self._slider = QSlider(Qt.Orientation.Horizontal)
@@ -117,7 +117,7 @@ class ToggleSliderInput(QWidget):
         layout.addWidget(self._check)
 
         self._label = QLabel(label)
-        self._label.setFixedWidth(72)
+        self._label.setFixedWidth(68)
         layout.addWidget(self._label)
 
         if decimals > 0:
@@ -129,7 +129,7 @@ class ToggleSliderInput(QWidget):
             self._spin.setSingleStep(int(step))
         self._spin.setRange(int(min_val * self._scale), int(max_val * self._scale))
         self._spin.setValue(int(default * self._scale))
-        self._spin.setFixedWidth(60)
+        self._spin.setFixedWidth(72)
         self._spin.setEnabled(False)
         layout.addWidget(self._spin)
 

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import time
 
 import numpy as np
 from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.detection import detect_bubble
@@ -31,18 +33,19 @@ class AppController:
         self.state = AppState()
         self._worker: BatchWorker | None = None
         self._manual_points: list[tuple[float, float]] = []
+        self._max_radius: float = float("inf")  # image long side; set on folder load
 
-        # Debounce timers for slider-driven updates (150 ms)
+        # Debounce timers for slider-driven updates (50 ms)
         self._display_timer = QTimer()
         self._display_timer.setSingleShot(True)
-        self._display_timer.setInterval(150)
+        self._display_timer.setInterval(50)
         self._display_timer.timeout.connect(
             lambda: self._display_frame(self.state.image_no)
         )
 
         self._preview_timer = QTimer()
         self._preview_timer.setSingleShot(True)
-        self._preview_timer.setInterval(150)
+        self._preview_timer.setInterval(50)
         self._preview_timer.timeout.connect(self._preview_detection)
 
         self._connect_signals()
@@ -116,6 +119,7 @@ class AppController:
         h, w = first_img.shape
         self.state.gridx = (1, h)
         self.state.gridy = (1, w)
+        self._max_radius = float(max(h, w))
 
         # Update UI
         lp = self.w.left_panel
@@ -173,7 +177,24 @@ class AppController:
             self.state.cur_img_binary_roi = binary_roi
 
             self.w.original_panel.set_image(cur_img)
-            self.w.binary_panel.set_image(~binary_roi)  # invert to match MATLAB
+
+            # For fitted frames, show the actual detection result;
+            # for unfitted frames, show the raw threshold.
+            if (self.state.radius is not None and self.state.radius[idx] > 0):
+                rf = compute_removing_factor(
+                    self.state.removing_factor,
+                    self.state.gridx, self.state.gridy,
+                )
+                processed, _ = detect_bubble(
+                    binary_roi, self.state.bubble_cross_edges, rf,
+                    self.state.gridx, self.state.gridy,
+                    self.state.removing_obj_radius,
+                    opening_radius=self.state.opening_radius,
+                    closing_radius=self.state.closing_radius,
+                )
+                self.w.binary_panel.set_image(processed)
+            else:
+                self.w.binary_panel.set_image(~binary_roi)
 
             # Draw ROI rectangle on original
             self.w.original_panel.draw_roi_rect(self.state.gridx, self.state.gridy)
@@ -313,18 +334,23 @@ class AppController:
 
             if edge_xy.shape[0] >= 3:
                 rc, cc, radius = circle_fit_taubin(edge_xy)
-                self.state.radius[idx] = radius
-                self.state.circle_fit_par[idx] = [rc, cc]
-                self.state.circle_xy[idx] = edge_xy
+                if np.isnan(radius) or radius > self._max_radius:
+                    self.w.header.set_status(
+                        f"Radius outlier ({radius:.0f} px), skipped", "#FCD34D",
+                    )
+                else:
+                    self.state.radius[idx] = radius
+                    self.state.circle_fit_par[idx] = [rc, cc]
+                    self.state.circle_xy[idx] = edge_xy
 
-                # Clear old overlays before drawing new results
-                self._redraw_original()
-                self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
-                self.w.original_panel.draw_points(edge_xy, "#EF4444", 2.0)
-                self._refresh_chart()
-                self.w.header.set_status(
-                    f"R = {radius:.1f} px", "#22C55E",
-                )
+                    # Clear old overlays before drawing new results
+                    self._redraw_original()
+                    self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
+                    self.w.original_panel.draw_points(edge_xy, "#EF4444", 2.0)
+                    self._refresh_chart()
+                    self.w.header.set_status(
+                        f"R = {radius:.1f} px", "#22C55E",
+                    )
             else:
                 self.w.header.set_status("Too few edge points", "#EF4444")
         except Exception as exc:
@@ -360,7 +386,13 @@ class AppController:
         rc, cc, radius = circle_fit_taubin(xy)
 
         idx = self.state.image_no
-        if not np.isnan(radius):
+        if np.isnan(radius):
+            self.w.header.set_status("Fitting failed", "#EF4444")
+        elif radius > self._max_radius:
+            self.w.header.set_status(
+                f"Radius outlier ({radius:.0f} px), skipped", "#FCD34D",
+            )
+        else:
             self.state.radius[idx] = radius
             self.state.circle_fit_par[idx] = [rc, cc]
             self.state.circle_xy[idx] = xy
@@ -368,16 +400,12 @@ class AppController:
             # Clear old overlays before drawing new results
             self._redraw_original()
             self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
+            self.w.original_panel.draw_points(xy, "#EF4444", 2.0)
             self._refresh_chart()
             self.w.header.set_status(f"R = {radius:.1f} px", "#22C55E")
-        else:
-            self.w.header.set_status("Fitting failed", "#EF4444")
 
-        # Auto-advance to next frame
         self._manual_points.clear()
         self.w.left_panel.manual_tab.reset()
-        if idx + 1 < self.state.total_frames:
-            self.w.frame_scrubber.set_value(idx + 1)
 
     def _on_manual_clear(self):
         self._manual_points.clear()
@@ -428,6 +456,7 @@ class AppController:
             clahe_clip=self.state.clahe_clip,
             closing_radius=self.state.closing_radius,
             opening_radius=self.state.opening_radius,
+            max_radius=self._max_radius,
         )
         self._worker.progress.connect(self._on_auto_progress)
         self._worker.frame_done.connect(self._on_auto_frame_done)
@@ -437,29 +466,63 @@ class AppController:
         self.w.left_panel.automatic_tab.set_running(True)
         self.w.header.set_status("Processing...", "#FCD34D")
         self.w.status_bar.update_mode("Automatic")
+        self._auto_last_display = 0.0  # force first frame to display
         self._worker.start()
 
     def _on_auto_progress(self, current: int, total: int):
         self.w.left_panel.automatic_tab.set_progress(current, total)
 
     def _on_auto_frame_done(self, idx: int, radius: float, edge_xy, binary_roi):
+        # Always update state (fast, no UI)
         self.state.radius[idx] = radius
         if edge_xy is not None and edge_xy.shape[0] > 0:
             rc, cc, _ = circle_fit_taubin(edge_xy)
             self.state.circle_fit_par[idx] = [rc, cc]
             self.state.circle_xy[idx] = edge_xy
 
-        # Update chart
+        # Throttle display updates to ~150ms intervals so the UI thread
+        # can process user events (e.g. stop button clicks)
+        now = time.monotonic()
+        if now - self._auto_last_display < 0.15:
+            return
+        self._auto_last_display = now
+
+        # Update frame scrubber WITHOUT triggering _on_frame_changed
+        self.w.frame_scrubber.blockSignals(True)
+        self.w.frame_scrubber.set_value(idx)
+        self.w.frame_scrubber.blockSignals(False)
+        self.state.image_no = idx
+
+        self.w.status_bar.update_frame(idx + 1, self.state.total_frames)
+
+        # Load and display original image for current frame
+        try:
+            cur_img, _, _, _ = load_and_normalize(
+                self.state.images[idx], self.state.img_thr,
+                self.state.gridx, self.state.gridy,
+                gaussian_sigma=self.state.gaussian_sigma,
+                clahe_clip=self.state.clahe_clip,
+            )
+            self.w.original_panel.set_image(cur_img)
+            self.w.original_panel.draw_roi_rect(
+                self.state.gridx, self.state.gridy,
+            )
+        except Exception:
+            pass
+
+        # Show binary result from worker (no disk I/O needed)
+        if binary_roi is not None:
+            self.w.binary_panel.set_image(binary_roi)
+
+        # Update chart periodically
         if radius > 0:
             self._refresh_chart()
-
-        # Update display to current frame
-        self.w.frame_scrubber.set_value(idx)
-        self.w.status_bar.update_frame(idx + 1, self.state.total_frames)
 
     def _on_auto_finished(self):
         self.w.left_panel.automatic_tab.set_running(False)
         self.w.header.set_status("Done", "#22C55E")
+        # Final full display update
+        self._display_frame(self.state.image_no)
         # Refresh chart with all data
         if self.state.radius is not None:
             frames = np.arange(1, len(self.state.radius) + 1)
@@ -482,45 +545,61 @@ class AppController:
     #  Export
     # ------------------------------------------------------------------ #
 
+    def _default_export_dir(self) -> str:
+        """Return the image folder as default export directory, or home."""
+        return self.state.folder_path or os.path.expanduser("~")
+
     def _on_export_r_data(self):
         pp = self.w.left_panel.post_processing
-        path = pp.get_save_path()
-        if not path:
-            pp.set_status("Set save path first", False)
-            return
         if self.state.radius is None:
             pp.set_status("No data to export", False)
             return
+
+        default = os.path.join(self._default_export_dir(), "radius_pixel.mat")
+        path, _ = QFileDialog.getSaveFileName(
+            self.w, "Export Pixel Data", default,
+            "MAT Files (*.mat);;All Files (*)",
+        )
+        if not path:
+            return  # user cancelled
+
         try:
             export_r_data(
-                os.path.join(path, "R_data.mat"),
+                path,
                 self.state.radius,
                 self.state.circle_fit_par,
                 self.state.circle_xy,
             )
-            pp.set_status("R_data.mat exported!", True)
+            pp.set_status(f"Exported: {os.path.basename(path)}", True)
         except Exception as exc:
             pp.set_status(f"Error: {exc}", False)
 
     def _on_export_rof_t(self):
         pp = self.w.left_panel.post_processing
-        path = pp.get_save_path()
-        if not path:
-            pp.set_status("Set save path first", False)
-            return
         if self.state.radius is None:
             pp.set_status("No data to export", False)
             return
+
+        default = os.path.join(
+            self._default_export_dir(), "radius_time_physical.mat",
+        )
+        path, _ = QFileDialog.getSaveFileName(
+            self.w, "Export Physical Data", default,
+            "MAT Files (*.mat);;All Files (*)",
+        )
+        if not path:
+            return  # user cancelled
+
         try:
             ok, msg = export_rof_t_data(
-                os.path.join(path, "RofTdata.mat"),
+                path,
                 self.state.radius,
                 pp.get_scale(),
                 pp.get_fps(),
                 pp.get_fit_length(),
             )
             if ok:
-                pp.set_status("RofTdata.mat exported!", True)
+                pp.set_status(f"Exported: {os.path.basename(path)}", True)
                 self.w.status_bar.update_scale(pp.get_scale())
             else:
                 pp.set_status(msg, False)
