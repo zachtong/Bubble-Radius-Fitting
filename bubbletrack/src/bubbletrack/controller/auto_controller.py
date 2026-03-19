@@ -86,6 +86,9 @@ class AutoController(BaseController):
         self.w.header.set_status("Cleared", "#22C55E")
 
     # -- internal signal handlers ----------------------------------------- #
+    # Thread safety: BatchWorker runs on a QThread and communicates results
+    # via frame_done signal. State mutations happen here on the main thread
+    # (guaranteed by Qt's queued signal/slot connection for cross-thread signals).
 
     def _on_auto_progress(self, current: int, total: int) -> None:
         self.w.left_panel.automatic_tab.set_progress(current, total)
