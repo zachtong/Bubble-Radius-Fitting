@@ -3,7 +3,39 @@
 from __future__ import annotations
 
 import numpy as np
+import scipy.io
 from scipy.io import savemat
+
+
+def safe_loadmat(filepath: str, expected_keys: frozenset[str]) -> dict:
+    """Load a ``.mat`` file with structure validation.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to the ``.mat`` file.
+    expected_keys : frozenset[str]
+        Set of keys that must be present in the loaded data.
+
+    Returns
+    -------
+    dict
+        The loaded data dictionary.
+
+    Raises
+    ------
+    ValueError
+        If the file is invalid or missing expected keys.
+    """
+    try:
+        data = scipy.io.loadmat(filepath)
+    except Exception as e:
+        raise ValueError(f"Invalid MAT file '{filepath}': {e}") from e
+
+    missing = expected_keys - set(data.keys())
+    if missing:
+        raise ValueError(f"MAT file missing keys: {missing}")
+    return data
 
 
 def export_r_data(

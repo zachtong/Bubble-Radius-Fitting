@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from scipy.io import loadmat
 
-from bubbletrack.model.export import export_r_data, export_rof_t_data
+from bubbletrack.model.export import export_r_data, export_rof_t_data, safe_loadmat
 
 
 class TestExportRData:
@@ -99,3 +99,37 @@ class TestExportRofTData:
         ok, msg = export_rof_t_data(str(tmp_path / "few.mat"), R, 1.0, 1.0, 3)
         assert not ok
         assert "Not enough valid frames" in msg
+
+
+class TestSafeLoadmat:
+    def test_safe_loadmat_valid_file(self, tmp_path):
+        """A valid .mat file with expected keys loads successfully."""
+        from scipy.io import savemat as _savemat
+
+        mat_path = str(tmp_path / "valid.mat")
+        _savemat(mat_path, {"alpha": np.array([1, 2, 3]), "beta": np.array([4, 5])})
+
+        expected = frozenset({"alpha", "beta"})
+        data = safe_loadmat(mat_path, expected)
+        assert "alpha" in data
+        assert "beta" in data
+        np.testing.assert_array_equal(data["alpha"].ravel(), [1, 2, 3])
+
+    def test_safe_loadmat_invalid_file(self, tmp_path):
+        """Garbage bytes should raise ValueError."""
+        bad_path = str(tmp_path / "garbage.mat")
+        with open(bad_path, "wb") as fh:
+            fh.write(os.urandom(128))
+
+        with pytest.raises(ValueError, match="Invalid MAT file"):
+            safe_loadmat(bad_path, frozenset({"x"}))
+
+    def test_safe_loadmat_missing_keys(self, tmp_path):
+        """A .mat file missing expected keys should raise ValueError."""
+        from scipy.io import savemat as _savemat
+
+        mat_path = str(tmp_path / "partial.mat")
+        _savemat(mat_path, {"alpha": np.array([1])})
+
+        with pytest.raises(ValueError, match="missing keys"):
+            safe_loadmat(mat_path, frozenset({"alpha", "beta", "gamma"}))
