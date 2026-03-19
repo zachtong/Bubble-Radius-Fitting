@@ -67,7 +67,7 @@ class ImagePanel(QWidget):
         # Graphics view
         self._scene = QGraphicsScene(self)
         self._view = _PanZoomView(self._scene, self)
-        self._view.setStyleSheet("border:1px solid #E2E8F0; border-radius:8px; background:#F8FAFC;")
+        self._view.setStyleSheet("border:1px solid rgba(255,255,255,0.06); border-radius:8px; background:#0c0d12;")
         self._view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self._view)
 
@@ -123,7 +123,7 @@ class ImagePanel(QWidget):
         self._view.fitInView(self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
     def draw_circle(self, row_c: float, col_c: float, radius: float,
-                    colour: str = "#3B82F6", width: float = 2.0):
+                    colour: str = "#6366f1", width: float = 2.0):
         """Draw a circle overlay. Coordinates are (row, col) = (y, x)."""
         pen = QPen(QColor(colour), width)
         item = self._scene.addEllipse(
@@ -140,7 +140,7 @@ class ImagePanel(QWidget):
             self._overlay_items.append(item)
 
     def draw_roi_rect(self, gridx: tuple[int, int], gridy: tuple[int, int],
-                      colour: str = "#22C55E"):
+                      colour: str = "#10b981"):
         """Draw an ROI rectangle (1-indexed coords)."""
         pen = QPen(QColor(colour), 2)
         rs, cs = roi_to_slice(gridx, gridy)
@@ -159,23 +159,23 @@ class ImagePanel(QWidget):
 
         | Mode   | Cursor       | Drag              | Border        |
         |--------|-------------|-------------------|---------------|
-        | normal | default     | ScrollHandDrag    | #E2E8F0 grey  |
-        | point  | CrossCursor | NoDrag            | #3B82F6 blue  |
-        | roi    | CrossCursor | RubberBandDrag    | #FCD34D amber |
+        | normal | default     | ScrollHandDrag    | subtle border |
+        | point  | CrossCursor | NoDrag            | #6366f1 indigo|
+        | roi    | CrossCursor | RubberBandDrag    | #f59e0b amber |
         """
         self._mode = mode
         if mode == "roi":
             self._view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
             self._view.setCursor(Qt.CursorShape.CrossCursor)
-            self._view.setStyleSheet("border:2px solid #FCD34D; border-radius:8px; background:#F8FAFC;")
+            self._view.setStyleSheet("border:2px solid #f59e0b; border-radius:8px; background:#0c0d12;")
         elif mode == "point":
             self._view.setDragMode(QGraphicsView.DragMode.NoDrag)
             self._view.setCursor(Qt.CursorShape.CrossCursor)
-            self._view.setStyleSheet("border:2px solid #3B82F6; border-radius:8px; background:#F8FAFC;")
+            self._view.setStyleSheet("border:2px solid #6366f1; border-radius:8px; background:#0c0d12;")
         else:
             self._view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             self._view.unsetCursor()
-            self._view.setStyleSheet("border:1px solid #E2E8F0; border-radius:8px; background:#F8FAFC;")
+            self._view.setStyleSheet("border:1px solid rgba(255,255,255,0.06); border-radius:8px; background:#0c0d12;")
 
     # -- Zoom helpers --
     def _zoom_in(self):

@@ -134,10 +134,10 @@ def display_frame(
             rc = state.circle_fit_par[idx, 0]
             cc = state.circle_fit_par[idx, 1]
             r = state.radius[idx]
-            window.original_panel.draw_circle(rc, cc, r, "#3B82F6")
+            window.original_panel.draw_circle(rc, cc, r, "#6366f1")
             if state.circle_xy and state.circle_xy[idx] is not None:
                 window.original_panel.draw_points(
-                    state.circle_xy[idx], "#EF4444", 2.0,
+                    state.circle_xy[idx], "#ef4444", 2.0,
                 )
 
         window.status_bar.update_frame(
@@ -145,7 +145,7 @@ def display_frame(
         )
         window.status_bar.update_roi(state.gridx, state.gridy)
     except Exception as exc:
-        window.header.set_status(f"Error: {exc}", "#EF4444")
+        window.header.set_status(f"Error: {exc}", "#ef4444")
 
 
 def refresh_chart(state: AppState, window) -> None:

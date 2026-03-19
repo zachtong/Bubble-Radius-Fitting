@@ -61,7 +61,7 @@ class ManualController(BaseController):
         self._undo_stack.clear()
         self.w.left_panel.manual_tab.set_point_count(0)
         self.w.original_panel.set_mode("point")
-        self.w.header.set_status("Click on bubble edge", "#FCD34D")
+        self.w.header.set_status("Click on bubble edge", "#f59e0b")
         self.w.status_bar.update_mode("Manual")
 
     def on_point_clicked(self, x: float, y: float) -> None:
@@ -77,12 +77,12 @@ class ManualController(BaseController):
         self.w.left_panel.manual_tab.set_point_count(n)
         # Draw the point
         pt = np.array([[y, x]])
-        self.w.original_panel.draw_points(pt, "#EF4444", 4.0)
+        self.w.original_panel.draw_points(pt, "#ef4444", 4.0)
 
     def on_manual_done(self) -> None:
         self.w.original_panel.set_mode("normal")
         if len(self._manual_points) < 3:
-            self.w.header.set_status("Need at least 3 points", "#EF4444")
+            self.w.header.set_status("Need at least 3 points", "#ef4444")
             return
 
         xy = np.array(self._manual_points)
@@ -90,10 +90,10 @@ class ManualController(BaseController):
 
         idx = self.state.image_no
         if np.isnan(radius):
-            self.w.header.set_status("Fitting failed", "#EF4444")
+            self.w.header.set_status("Fitting failed", "#ef4444")
         elif radius > self._get_max_radius():
             self.w.header.set_status(
-                f"Radius outlier ({radius:.0f} px), skipped", "#FCD34D",
+                f"Radius outlier ({radius:.0f} px), skipped", "#f59e0b",
             )
         else:
             self.state.radius[idx] = radius
@@ -102,10 +102,10 @@ class ManualController(BaseController):
 
             # Clear old overlays before drawing new results
             redraw_original(self.state, self.w)
-            self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
-            self.w.original_panel.draw_points(xy, "#EF4444", 2.0)
+            self.w.original_panel.draw_circle(rc, cc, radius, "#6366f1")
+            self.w.original_panel.draw_points(xy, "#ef4444", 2.0)
             refresh_chart(self.state, self.w)
-            self.w.header.set_status(f"R = {radius:.1f} px", "#22C55E")
+            self.w.header.set_status(f"R = {radius:.1f} px", "#10b981")
 
         self._manual_points.clear()
         self.w.left_panel.manual_tab.reset()
@@ -122,7 +122,7 @@ class ManualController(BaseController):
         self.w.original_panel.clear_overlays()
         if self._manual_points:
             pts = np.array(self._manual_points)
-            self.w.original_panel.draw_points(pts, "#EF4444", 4.0)
+            self.w.original_panel.draw_points(pts, "#ef4444", 4.0)
         logger.info("Undo: %d points remaining", n)
 
     def on_manual_clear(self) -> None:
@@ -147,7 +147,7 @@ class ManualController(BaseController):
             frames = np.arange(1, len(self.state.radius) + 1)
             self.w.radius_chart.plot_all(frames, self.state.radius)
 
-        self.w.header.set_status("Ready", "#22C55E")
+        self.w.header.set_status("Ready", "#10b981")
 
     def clear_points(self) -> None:
         """Clear the manual points list (called on tab change)."""

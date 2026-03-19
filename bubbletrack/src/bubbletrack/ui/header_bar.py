@@ -21,14 +21,14 @@ class HeaderBar(QWidget):
 
         # Status indicator
         self._status_dot = QLabel("\u25CF")
-        self._status_dot.setStyleSheet("color:#22C55E; font-size:10px;")
+        self._status_dot.setStyleSheet("color:#10b981; font-size:10px;")
         layout.addWidget(self._status_dot)
         self._status_label = QLabel("Ready")
-        self._status_label.setStyleSheet("color:#94A3B8; font-size:12px; font-weight:normal;")
+        self._status_label.setStyleSheet("color:#a1a1aa; font-size:12px; font-weight:normal;")
         layout.addWidget(self._status_label)
 
         layout.addStretch()
 
-    def set_status(self, text: str, colour: str = "#22C55E"):
+    def set_status(self, text: str, colour: str = "#10b981"):
         self._status_label.setText(text)
         self._status_dot.setStyleSheet(f"color:{colour}; font-size:10px;")

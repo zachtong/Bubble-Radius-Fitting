@@ -111,6 +111,6 @@ class PostProcessing(QWidget):
         return mapping.get(self._format_combo.currentText(), "mat")
 
     def set_status(self, text: str, success: bool = True):
-        colour = "#22C55E" if success else "#EF4444"
+        colour = "#10b981" if success else "#ef4444"
         self._status.setStyleSheet(f"color:{colour}; font-size:11px;")
         self._status.setText(text)

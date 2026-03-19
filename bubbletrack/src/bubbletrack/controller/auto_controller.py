@@ -71,11 +71,11 @@ class AutoController(BaseController):
         self._worker.frame_done.connect(self._on_auto_frame_done)
         self._worker.finished.connect(self._on_auto_finished)
         self._worker.error.connect(
-            lambda msg: self.w.header.set_status(msg, "#FCD34D"),
+            lambda msg: self.w.header.set_status(msg, "#f59e0b"),
         )
 
         self.w.left_panel.automatic_tab.set_running(True)
-        self.w.header.set_status("Processing...", "#FCD34D")
+        self.w.header.set_status("Processing...", "#f59e0b")
         self.w.status_bar.update_mode("Automatic")
         self._auto_last_display = 0.0  # force first frame to display
         self._auto_start_time = time.monotonic()
@@ -84,7 +84,7 @@ class AutoController(BaseController):
     def on_auto_stop(self) -> None:
         if self._worker:
             self._worker.request_stop()
-            self.w.header.set_status("Stopping...", "#FCD34D")
+            self.w.header.set_status("Stopping...", "#f59e0b")
 
     def on_auto_clear(self) -> None:
         if self.state.images:
@@ -95,7 +95,7 @@ class AutoController(BaseController):
             self.state, self.w, self.state.image_no, self._set_state,
             self._cache,
         )
-        self.w.header.set_status("Cleared", "#22C55E")
+        self.w.header.set_status("Cleared", "#10b981")
 
     # -- internal signal handlers ----------------------------------------- #
     # Thread safety: BatchWorker runs on a QThread and communicates results
@@ -166,8 +166,8 @@ class AutoController(BaseController):
             # Draw fitted circle and edge points on original image
             if radius > 0 and edge_xy is not None and edge_xy.shape[0] > 0:
                 rc, cc, _ = circle_fit_taubin(edge_xy)
-                self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
-                self.w.original_panel.draw_points(edge_xy, "#EF4444", 2.0)
+                self.w.original_panel.draw_circle(rc, cc, radius, "#6366f1")
+                self.w.original_panel.draw_points(edge_xy, "#ef4444", 2.0)
         except Exception:
             pass
 
@@ -181,7 +181,7 @@ class AutoController(BaseController):
 
     def _on_auto_finished(self) -> None:
         self.w.left_panel.automatic_tab.set_running(False)
-        self.w.header.set_status("Done", "#22C55E")
+        self.w.header.set_status("Done", "#10b981")
         # Final full display update
         display_frame(
             self.state, self.w, self.state.image_no, self._set_state,
@@ -197,7 +197,7 @@ class AutoController(BaseController):
             anomaly_count = int(anomaly_mask.sum())
             if anomaly_count > 0:
                 self.w.header.set_status(
-                    f"Done — {anomaly_count} anomalies detected", "#FCD34D",
+                    f"Done — {anomaly_count} anomalies detected", "#f59e0b",
                 )
             logger.info("Anomaly detection: %d / %d frames flagged",
                         anomaly_count, len(self.state.radius))

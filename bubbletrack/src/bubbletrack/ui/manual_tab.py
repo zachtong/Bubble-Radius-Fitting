@@ -46,7 +46,7 @@ class ManualTab(QWidget):
             "Click on the bubble edge to select points.\n"
             "At least 3 points are needed for circle fitting.\n"
             "Press Done or Enter when finished.",
-            colour="#EFF6FF", border="#BFDBFE",
+            colour="rgba(99, 102, 241, 0.15)", border="rgba(99, 102, 241, 0.20)",
         )
         layout.addWidget(self._info)
 
@@ -92,10 +92,10 @@ class ManualTab(QWidget):
         self._done_btn.setEnabled(n >= 3)
         if n >= 3:
             self._status.setText("Ready to fit")
-            self._status.setStyleSheet("color:#22C55E; font-size:11px;")
+            self._status.setStyleSheet("color:#10b981; font-size:11px;")
         else:
             self._status.setText(f"Need {3 - n} more")
-            self._status.setStyleSheet("color:#94A3B8; font-size:11px;")
+            self._status.setStyleSheet("color:#71717a; font-size:11px;")
 
     def reset(self):
         self.set_point_count(0)

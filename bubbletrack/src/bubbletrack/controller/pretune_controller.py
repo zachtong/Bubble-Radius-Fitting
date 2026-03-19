@@ -128,7 +128,7 @@ class PretuneController(BaseController):
 
     def on_select_roi(self) -> None:
         self.w.original_panel.set_mode("roi")
-        self.w.header.set_status("Drag on image to select ROI", "#FCD34D")
+        self.w.header.set_status("Drag on image to select ROI", "#f59e0b")
 
     def on_roi_selected(self, r0: int, r1: int, c0: int, c1: int) -> None:
         # Clamp to actual image dimensions
@@ -140,7 +140,7 @@ class PretuneController(BaseController):
         if self._cache is not None:
             self._cache.invalidate()
         self.w.left_panel.pretune_tab.set_roi((r0, r1), (c0, c1))
-        self.w.header.set_status("ROI selected", "#22C55E")
+        self.w.header.set_status("ROI selected", "#10b981")
         display_frame(
             self.state, self.w, self.state.image_no, self._set_state,
             self._cache,
@@ -151,7 +151,7 @@ class PretuneController(BaseController):
         if not self.state.images:
             return
 
-        self.w.header.set_status("Fitting...", "#FCD34D")
+        self.w.header.set_status("Fitting...", "#f59e0b")
         idx = self.state.image_no
         rf = compute_removing_factor(
             self.state.removing_factor, self.state.gridx, self.state.gridy,
@@ -179,7 +179,7 @@ class PretuneController(BaseController):
                 if np.isnan(radius) or radius > self._get_max_radius():
                     logger.error("Fit failed for frame %d", idx)
                     self.w.header.set_status(
-                        f"Radius outlier ({radius:.0f} px), skipped", "#FCD34D",
+                        f"Radius outlier ({radius:.0f} px), skipped", "#f59e0b",
                     )
                 else:
                     logger.info("Fit frame %d: radius=%.2f", idx, radius)
@@ -189,13 +189,13 @@ class PretuneController(BaseController):
 
                     # Clear old overlays before drawing new results
                     redraw_original(self.state, self.w)
-                    self.w.original_panel.draw_circle(rc, cc, radius, "#3B82F6")
-                    self.w.original_panel.draw_points(edge_xy, "#EF4444", 2.0)
+                    self.w.original_panel.draw_circle(rc, cc, radius, "#6366f1")
+                    self.w.original_panel.draw_points(edge_xy, "#ef4444", 2.0)
                     refresh_chart(self.state, self.w)
                     self.w.header.set_status(
-                        f"R = {radius:.1f} px", "#22C55E",
+                        f"R = {radius:.1f} px", "#10b981",
                     )
             else:
-                self.w.header.set_status("Too few edge points", "#EF4444")
+                self.w.header.set_status("Too few edge points", "#ef4444")
         except Exception as exc:
-            self.w.header.set_status(f"Error: {exc}", "#EF4444")
+            self.w.header.set_status(f"Error: {exc}", "#ef4444")

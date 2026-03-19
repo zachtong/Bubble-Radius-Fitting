@@ -38,7 +38,7 @@ class RadiusChart(QWidget):
 
         # Configure pyqtgraph plot widget
         self._plot = pg.PlotWidget()
-        self._plot.setBackground("#F8FAFC")
+        self._plot.setBackground("#0c0d12")
         self._plot.setLabel("left", "Radius (px)")
         self._plot.setLabel("bottom", "Frame")
         self._plot.showGrid(x=True, y=True, alpha=0.3)
@@ -46,8 +46,8 @@ class RadiusChart(QWidget):
         # Style axes to match the app theme
         for axis_name in ("left", "bottom"):
             axis = self._plot.getAxis(axis_name)
-            axis.setPen(pg.mkPen("#E2E8F0"))
-            axis.setTextPen(pg.mkPen("#64748B"))
+            axis.setPen(pg.mkPen(255, 255, 255, 15))  # rgba(255,255,255,0.06)
+            axis.setTextPen(pg.mkPen("#71717a"))
 
         # Scatter plot item — red "+" markers
         self._scatter = pg.ScatterPlotItem(
@@ -61,8 +61,8 @@ class RadiusChart(QWidget):
 
         # Anomaly overlay — yellow triangle markers
         self._anomaly_scatter = pg.ScatterPlotItem(
-            pen=pg.mkPen("#FCD34D", width=1.5),
-            brush=pg.mkBrush("#FCD34D"),
+            pen=pg.mkPen("#f59e0b", width=1.5),
+            brush=pg.mkBrush("#f59e0b"),
             symbol="t",
             size=12,
         )

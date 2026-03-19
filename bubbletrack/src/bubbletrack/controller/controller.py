@@ -211,7 +211,7 @@ class AppController:
                 self._state, self.w, idx, self._set_state, self._image_cache,
             )
 
-        self.w.header.set_status(f"Deleted result for frame {idx + 1}", "#22C55E")
+        self.w.header.set_status(f"Deleted result for frame {idx + 1}", "#10b981")
         logger.info("Deleted result for frame %d", idx + 1)
 
     def _on_refit_point(self, idx: int) -> None:
@@ -278,17 +278,17 @@ class AppController:
             r_val = self._state.radius[idx]
             if r_val > 0:
                 self.w.header.set_status(
-                    f"Refit frame {idx + 1}: r = {r_val:.1f} px", "#22C55E",
+                    f"Refit frame {idx + 1}: r = {r_val:.1f} px", "#10b981",
                 )
             else:
                 self.w.header.set_status(
-                    f"Refit frame {idx + 1}: fit failed", "#FCD34D",
+                    f"Refit frame {idx + 1}: fit failed", "#f59e0b",
                 )
             logger.info("Refit frame %d: radius = %s", idx + 1, r_val)
 
         except Exception as exc:
             logger.error("Refit frame %d failed: %s", idx + 1, exc)
-            self.w.header.set_status(f"Refit failed: {exc}", "#EF4444")
+            self.w.header.set_status(f"Refit failed: {exc}", "#ef4444")
 
     def _refresh_chart_and_anomalies(self) -> None:
         """Refresh the R-t chart and re-run anomaly detection."""
@@ -315,11 +315,11 @@ class AppController:
         try:
             save_session(path, self._state)
             self.w.header.set_status(
-                f"Session saved: {os.path.basename(path)}", "#22C55E",
+                f"Session saved: {os.path.basename(path)}", "#10b981",
             )
         except Exception as exc:
             logger.error("Session save failed: %s", exc)
-            self.w.header.set_status(f"Save failed: {exc}", "#FCD34D")
+            self.w.header.set_status(f"Save failed: {exc}", "#f59e0b")
 
     def _on_load_session(self) -> None:
         """Prompt the user for a .brt file and restore the session."""
@@ -334,7 +334,7 @@ class AppController:
             data = load_session(path)
         except (ValueError, FileNotFoundError) as exc:
             logger.error("Session load failed: %s", exc)
-            self.w.header.set_status(f"Load failed: {exc}", "#FCD34D")
+            self.w.header.set_status(f"Load failed: {exc}", "#f59e0b")
             return
 
         # Remove keys that are not AppState fields (e.g. "version")
@@ -343,7 +343,7 @@ class AppController:
             self._state = update_state(AppState(), **data)
         except TypeError as exc:
             logger.error("Session restore failed: %s", exc)
-            self.w.header.set_status(f"Restore failed: {exc}", "#FCD34D")
+            self.w.header.set_status(f"Restore failed: {exc}", "#f59e0b")
             return
 
         # Reload the folder if one was saved and re-display
@@ -351,5 +351,5 @@ class AppController:
             self.file_ctrl.on_folder_selected(self._state.folder_path)
 
         self.w.header.set_status(
-            f"Session loaded: {os.path.basename(path)}", "#22C55E",
+            f"Session loaded: {os.path.basename(path)}", "#10b981",
         )

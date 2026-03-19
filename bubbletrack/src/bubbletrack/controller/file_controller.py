@@ -41,7 +41,7 @@ class FileController(BaseController):
 
         images = scan_folder(folder)
         if not images:
-            self.w.header.set_status("No images found", "#EF4444")
+            self.w.header.set_status("No images found", "#ef4444")
             return
 
         logger.info("Loaded %d images from %s", len(images), folder)
@@ -71,7 +71,7 @@ class FileController(BaseController):
         self.w.radius_chart.set_total_frames(len(images))
         self.w.status_bar.update_frame(frame_to_display(0), len(images))
         self.w.status_bar.update_format(os.path.splitext(images[0])[1])
-        self.w.header.set_status("Ready", "#22C55E")
+        self.w.header.set_status("Ready", "#10b981")
 
         display_frame(self.state, self.w, 0, self._set_state, self._cache)
 
@@ -84,12 +84,12 @@ class FileController(BaseController):
         try:
             reader = VideoFrameReader(video_path)
         except Exception as exc:
-            self.w.header.set_status(f"Cannot open video: {exc}", "#EF4444")
+            self.w.header.set_status(f"Cannot open video: {exc}", "#ef4444")
             return
 
         n = reader.total_frames
         if n == 0:
-            self.w.header.set_status("Video has no frames", "#EF4444")
+            self.w.header.set_status("Video has no frames", "#ef4444")
             reader.close()
             return
 
@@ -138,7 +138,7 @@ class FileController(BaseController):
         self.w.radius_chart.set_total_frames(n)
         self.w.status_bar.update_frame(frame_to_display(0), n)
         self.w.status_bar.update_format(os.path.splitext(video_path)[1])
-        self.w.header.set_status("Ready (video)", "#22C55E")
+        self.w.header.set_status("Ready (video)", "#10b981")
 
         display_frame(self.state, self.w, 0, self._set_state, self._cache)
 

@@ -202,9 +202,9 @@ class ToggleSwitch(QCheckBox):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         if self.isChecked():
-            p.setBrush(QColor("#3B82F6"))
+            p.setBrush(QColor("#6366f1"))
         else:
-            p.setBrush(QColor("#CBD5E1"))
+            p.setBrush(QColor("#52525b"))
         p.setPen(Qt.PenStyle.NoPen)
         p.drawRoundedRect(0, 0, 40, 20, 10, 10)
         # Thumb
@@ -265,7 +265,8 @@ class CollapsibleSection(QWidget):
 class InfoBox(QFrame):
     """Coloured information / instruction box."""
 
-    def __init__(self, text: str, colour: str = "#EFF6FF", border: str = "#BFDBFE",
+    def __init__(self, text: str, colour: str = "rgba(99, 102, 241, 0.15)",
+                 border: str = "rgba(99, 102, 241, 0.20)",
                  parent: QWidget | None = None):
         super().__init__(parent)
         self.setStyleSheet(
@@ -275,5 +276,5 @@ class InfoBox(QFrame):
         layout.setContentsMargins(8, 8, 8, 8)
         lbl = QLabel(text)
         lbl.setWordWrap(True)
-        lbl.setStyleSheet("border:none;")
+        lbl.setStyleSheet("border:none; color:#e4e4e7;")
         layout.addWidget(lbl)
