@@ -1,9 +1,10 @@
-"""ExportController — pixel-data and physical-data export."""
+"""ExportController — pixel-data, physical-data, and PDF report export."""
 
 from __future__ import annotations
 
 import logging
 import os
+import tempfile
 from datetime import datetime
 
 from PyQt6.QtWidgets import QFileDialog
@@ -16,6 +17,7 @@ from bubbletrack.model.export import (
     export_r_data,
     export_rof_t_data,
 )
+from bubbletrack.model.report import generate_report
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +111,62 @@ class ExportController(BaseController):
                     pp.set_status(msg, False)
         except Exception as exc:
             pp.set_status(f"Error: {exc}", False)
+
+    def on_generate_report(self) -> None:
+        pp = self.w.left_panel.post_processing
+        if self.state.radius is None:
+            pp.set_status("No data for report", False)
+            return
+
+        default = os.path.join(
+            self._default_export_dir(),
+            self._default_filename("report", ext=".pdf"),
+        )
+        path, _ = QFileDialog.getSaveFileName(
+            self.w, "Save PDF Report", default,
+            "PDF Files (*.pdf);;All Files (*)",
+        )
+        if not path:
+            return  # user cancelled
+
+        # Save chart image to a temporary file for embedding in the PDF
+        chart_path: str | None = None
+        try:
+            chart_widget = self.w.radius_chart
+            # Use pyqtgraph's export API to save the chart as a PNG
+            exporter_cls = None
+            try:
+                from pyqtgraph.exporters import ImageExporter
+                exporter_cls = ImageExporter
+            except ImportError:
+                pass
+
+            if exporter_cls is not None:
+                tmp = tempfile.NamedTemporaryFile(
+                    suffix=".png", delete=False,
+                )
+                tmp.close()
+                chart_path = tmp.name
+                exporter = exporter_cls(chart_widget._plot.plotItem)
+                exporter.parameters()["width"] = 1200
+                exporter.export(chart_path)
+        except Exception as exc:
+            logger.warning("Could not export chart image: %s", exc)
+            chart_path = None
+
+        try:
+            generate_report(path, self.state, chart_image_path=chart_path)
+            logger.info("Report: %s", path)
+            pp.set_status(f"Report saved: {os.path.basename(path)}", True)
+        except Exception as exc:
+            pp.set_status(f"Report error: {exc}", False)
+        finally:
+            # Clean up temporary chart image
+            if chart_path:
+                try:
+                    os.unlink(chart_path)
+                except OSError:
+                    pass
 
     # -- private helpers -------------------------------------------------- #
 

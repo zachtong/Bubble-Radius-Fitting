@@ -173,6 +173,7 @@ class AppController:
         pp = lp.post_processing
         pp.export_r_data_clicked.connect(self.export_ctrl.on_export_r_data)
         pp.export_rof_t_clicked.connect(self.export_ctrl.on_export_rof_t)
+        pp.generate_report_clicked.connect(self.export_ctrl.on_generate_report)
 
         # ROI selection from image panel
         self.w.original_panel.roi_selected.connect(self.pretune_ctrl.on_roi_selected)

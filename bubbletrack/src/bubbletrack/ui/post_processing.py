@@ -16,6 +16,7 @@ class PostProcessing(QWidget):
 
     export_r_data_clicked = pyqtSignal()
     export_rof_t_clicked = pyqtSignal()
+    generate_report_clicked = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -80,6 +81,11 @@ class PostProcessing(QWidget):
         btn_container = QWidget()
         btn_container.setLayout(btn_row)
         section.add_widget(btn_container)
+
+        # PDF report button
+        self._report_btn = QPushButton("Generate Report")
+        self._report_btn.clicked.connect(self.generate_report_clicked)
+        section.add_widget(self._report_btn)
 
         # Status label
         self._status = QLabel("")
