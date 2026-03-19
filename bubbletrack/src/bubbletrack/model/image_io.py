@@ -15,6 +15,10 @@ from bubbletrack.model.conventions import roi_to_slice
 logger = logging.getLogger(__name__)
 
 
+class ImageLoadError(Exception):
+    """Raised when an image file cannot be loaded or is corrupted."""
+
+
 # Supported extensions in priority order
 _EXTENSIONS = (".tiff", ".tif", ".png", ".jpg", ".jpeg", ".bmp")
 
@@ -93,7 +97,9 @@ def load_and_normalize(
     raw = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     if raw is None:
         logger.warning("Cannot read image: %s", image_path)
-        raise FileNotFoundError(f"Cannot read image: {image_path}")
+        raise ImageLoadError(
+            f"Cannot read image (file may be missing or corrupted): {image_path}"
+        )
 
     # Convert to greyscale if needed
     if raw.ndim == 3:

@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from bubbletrack.model.image_io import (
+    ImageLoadError,
     detect_bit_depth,
     load_and_normalize,
     scan_folder,
@@ -99,8 +100,20 @@ class TestLoadAndNormalize:
         assert bin_high.sum() >= bin_low.sum()
 
     def test_missing_file_raises(self):
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(ImageLoadError):
             load_and_normalize("/nonexistent.png", 0.5, (1, 10), (1, 10))
+
+    def test_nonexistent_file_raises(self):
+        """Passing a path that does not exist raises ImageLoadError."""
+        with pytest.raises(ImageLoadError, match="missing or corrupted"):
+            load_and_normalize("/does/not/exist/image.tif", 0.5, (1, 10), (1, 10))
+
+    def test_corrupted_file_raises(self, tmp_path):
+        """A file with random bytes (not a valid image) raises ImageLoadError."""
+        corrupted = tmp_path / "corrupted.tif"
+        corrupted.write_bytes(os.urandom(256))
+        with pytest.raises(ImageLoadError, match="missing or corrupted"):
+            load_and_normalize(str(corrupted), 0.5, (1, 10), (1, 10))
 
     def test_full_roi(self, img_folder):
         paths = scan_folder(img_folder)
