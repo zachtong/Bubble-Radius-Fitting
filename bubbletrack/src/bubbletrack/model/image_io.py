@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 # Supported extensions in priority order
@@ -84,8 +87,10 @@ def load_and_normalize(
     cur_img_binary_roi : ndarray
         ROI slice of *cur_img_binary*.
     """
+    logger.debug("Loading image: %s", image_path)
     raw = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     if raw is None:
+        logger.warning("Cannot read image: %s", image_path)
         raise FileNotFoundError(f"Cannot read image: {image_path}")
 
     # Convert to greyscale if needed

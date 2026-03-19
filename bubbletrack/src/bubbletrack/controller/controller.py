@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 
@@ -25,6 +26,8 @@ from bubbletrack.model.image_io import (
 from bubbletrack.model.removing_factor import compute_removing_factor
 from bubbletrack.model.state import AppState
 from bubbletrack.controller.worker import BatchWorker
+
+logger = logging.getLogger(__name__)
 
 
 class AppController:
@@ -112,6 +115,8 @@ class AppController:
         if not images:
             self.w.header.set_status("No images found", "#EF4444")
             return
+
+        logger.info("Loaded %d images from %s", len(images), folder)
 
         self.state.folder_path = folder
         self.state.images = images
@@ -340,10 +345,12 @@ class AppController:
             if edge_xy.shape[0] >= 3:
                 rc, cc, radius = circle_fit_taubin(edge_xy)
                 if np.isnan(radius) or radius > self._max_radius:
+                    logger.error("Fit failed for frame %d", idx)
                     self.w.header.set_status(
                         f"Radius outlier ({radius:.0f} px), skipped", "#FCD34D",
                     )
                 else:
+                    logger.info("Fit frame %d: radius=%.2f", idx, radius)
                     self.state.radius[idx] = radius
                     self.state.circle_fit_par[idx] = [rc, cc]
                     self.state.circle_xy[idx] = edge_xy
@@ -580,6 +587,7 @@ class AppController:
                 self.state.circle_fit_par,
                 self.state.circle_xy,
             )
+            logger.info("Export: %s", path)
             pp.set_status(f"Exported: {os.path.basename(path)}", True)
         except Exception as exc:
             pp.set_status(f"Error: {exc}", False)
@@ -609,6 +617,7 @@ class AppController:
                 pp.get_fit_length(),
             )
             if ok:
+                logger.info("Export: %s", path)
                 pp.set_status(f"Exported: {os.path.basename(path)}", True)
                 self.w.status_bar.update_scale(pp.get_scale())
             else:

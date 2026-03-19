@@ -9,11 +9,14 @@ from pathlib import Path
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
+from bubbletrack.logging_config import setup_logging
 from bubbletrack.ui.main_window import MainWindow
 from bubbletrack.controller.controller import AppController
 
 
 def main():
+    setup_logging(log_dir=Path.home() / ".bubbletrack" / "logs")
+
     app = QApplication(sys.argv)
 
     # Resolve resources path (works both normally and when frozen by PyInstaller)

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
+
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.image_io import load_and_normalize
 from bubbletrack.model.removing_factor import compute_removing_factor
+
+logger = logging.getLogger(__name__)
 
 
 class BatchWorker(QThread):
@@ -67,9 +72,11 @@ class BatchWorker(QThread):
     def run(self):
         total = self._end - self._start + 1
         rf = compute_removing_factor(self._rf_slider, self._gridx, self._gridy)
+        logger.info("Batch processing frames %d-%d", self._start, self._end)
 
         for count, i in enumerate(range(self._start, self._end + 1)):
             if self._stop:
+                logger.warning("Batch stopped by user at frame %d", i)
                 break
             try:
                 _, _, _, binary_roi = load_and_normalize(
@@ -96,6 +103,7 @@ class BatchWorker(QThread):
 
                 self.frame_done.emit(i, float(radius), edge_xy, processed)
             except Exception as exc:
+                logger.error("Batch error: %s", exc)
                 self.error.emit(f"Frame {i + 1}: {exc}")
                 self.frame_done.emit(i, -1.0, np.empty((0, 2)), None)
 
