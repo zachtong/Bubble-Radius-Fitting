@@ -16,6 +16,7 @@ from bubbletrack.model.constants import (
     DISPLAY_DEBOUNCE_MS,
     PREVIEW_DEBOUNCE_MS,
 )
+from bubbletrack.model.conventions import display_to_frame, frame_to_display
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.export import export_r_data, export_rof_t_data
 from bubbletrack.model.image_io import (
@@ -140,7 +141,7 @@ class AppController:
         lp.automatic_tab.set_range(len(images))
         self.w.frame_scrubber.set_range(len(images))
         self.w.radius_chart.set_total_frames(len(images))
-        self.w.status_bar.update_frame(1, len(images))
+        self.w.status_bar.update_frame(frame_to_display(0), len(images))
         self.w.status_bar.update_format(os.path.splitext(images[0])[1])
         self.w.header.set_status("Ready", "#22C55E")
 
@@ -222,7 +223,9 @@ class AppController:
                         self.state.circle_xy[idx], "#EF4444", 2.0,
                     )
 
-            self.w.status_bar.update_frame(idx + 1, self.state.total_frames)
+            self.w.status_bar.update_frame(
+                frame_to_display(idx), self.state.total_frames,
+            )
             self.w.status_bar.update_roi(self.state.gridx, self.state.gridy)
         except Exception as exc:
             self.w.header.set_status(f"Error: {exc}", "#EF4444")
@@ -451,8 +454,8 @@ class AppController:
             return
 
         start, end = self.w.left_panel.automatic_tab.get_range()
-        start_idx = start - 1  # 0-indexed
-        end_idx = end - 1
+        start_idx = display_to_frame(start)
+        end_idx = display_to_frame(end)
 
         self._worker = BatchWorker(
             images=self.state.images,
@@ -505,7 +508,9 @@ class AppController:
         self.w.frame_scrubber.blockSignals(False)
         self.state.image_no = idx
 
-        self.w.status_bar.update_frame(idx + 1, self.state.total_frames)
+        self.w.status_bar.update_frame(
+            frame_to_display(idx), self.state.total_frames,
+        )
 
         # Load and display original image for current frame
         try:

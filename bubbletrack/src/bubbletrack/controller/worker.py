@@ -9,6 +9,7 @@ import numpy as np
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from bubbletrack.model.circle_fit import circle_fit_taubin
+from bubbletrack.model.conventions import frame_to_display
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.image_io import load_and_normalize
 from bubbletrack.model.removing_factor import compute_removing_factor
@@ -104,7 +105,7 @@ class BatchWorker(QThread):
                 self.frame_done.emit(i, float(radius), edge_xy, processed)
             except Exception as exc:
                 logger.error("Batch error: %s", exc)
-                self.error.emit(f"Frame {i + 1}: {exc}")
+                self.error.emit(f"Frame {frame_to_display(i)}: {exc}")
                 self.frame_done.emit(i, -1.0, np.empty((0, 2)), None)
 
             self.progress.emit(count + 1, total)

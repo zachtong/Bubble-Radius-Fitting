@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QPointF
+
+from bubbletrack.model.conventions import roi_to_slice
 from PyQt6.QtGui import (
     QImage, QPixmap, QPen, QColor, QBrush, QWheelEvent, QMouseEvent,
 )
@@ -117,8 +119,9 @@ class ImagePanel(QWidget):
                       colour: str = "#22C55E"):
         """Draw an ROI rectangle (1-indexed coords)."""
         pen = QPen(QColor(colour), 2)
-        r0, r1 = gridx[0] - 1, gridx[1]
-        c0, c1 = gridy[0] - 1, gridy[1]
+        rs, cs = roi_to_slice(gridx, gridy)
+        r0, r1 = rs.start, rs.stop
+        c0, c1 = cs.start, cs.stop
         item = self._scene.addRect(c0, r0, c1 - c0, r1 - r0, pen)
         self._overlay_items.append(item)
 

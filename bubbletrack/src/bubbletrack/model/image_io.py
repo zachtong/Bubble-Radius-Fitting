@@ -10,6 +10,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from bubbletrack.model.conventions import roi_to_slice
+
 logger = logging.getLogger(__name__)
 
 
@@ -144,9 +146,8 @@ def load_and_normalize(
     cur_img_binary = binary_8 > 0
 
     # Extract ROI (1-indexed inclusive -> 0-indexed exclusive)
-    r0, r1 = gridx[0] - 1, gridx[1]
-    c0, c1 = gridy[0] - 1, gridy[1]
-    cur_img_roi = cur_img[r0:r1, c0:c1]
-    cur_img_binary_roi = cur_img_binary[r0:r1, c0:c1]
+    rs, cs = roi_to_slice(gridx, gridy)
+    cur_img_roi = cur_img[rs, cs]
+    cur_img_binary_roi = cur_img_binary[rs, cs]
 
     return cur_img, cur_img_binary, cur_img_roi, cur_img_binary_roi

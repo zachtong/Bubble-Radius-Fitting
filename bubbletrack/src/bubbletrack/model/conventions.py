@@ -1,0 +1,42 @@
+"""Index convention helpers.
+
+Convention summary:
+- Frame indices: 0-based internally, 1-based in UI display
+- ROI bounds (gridx, gridy): 1-based inclusive (MATLAB convention)
+  - gridx = (row_min, row_max), gridy = (col_min, col_max)
+  - To slice NumPy arrays: img[gridx[0]-1 : gridx[1], gridy[0]-1 : gridy[1]]
+- Edge coordinates from detection: 1-based (row, col) in full image space
+- Circle fit input/output: same coordinate space as edge coordinates
+"""
+
+from __future__ import annotations
+
+
+def roi_to_slice(
+    gridx: tuple[int, int], gridy: tuple[int, int]
+) -> tuple[slice, slice]:
+    """Convert 1-based inclusive ROI bounds to NumPy slices.
+
+    Parameters
+    ----------
+    gridx : (row_min, row_max)
+        1-based inclusive row bounds.
+    gridy : (col_min, col_max)
+        1-based inclusive column bounds.
+
+    Returns
+    -------
+    (row_slice, col_slice)
+        Slices suitable for ``img[row_slice, col_slice]``.
+    """
+    return slice(gridx[0] - 1, gridx[1]), slice(gridy[0] - 1, gridy[1])
+
+
+def frame_to_display(idx: int) -> int:
+    """Convert 0-based frame index to 1-based display number."""
+    return idx + 1
+
+
+def display_to_frame(display_num: int) -> int:
+    """Convert 1-based display number to 0-based frame index."""
+    return display_num - 1
