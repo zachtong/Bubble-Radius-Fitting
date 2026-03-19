@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pyinstaller"]
+dev = ["pytest", "pyinstaller", "pip-audit"]
 
 [project.scripts]
 bubbletrack = "bubbletrack.app:main"
