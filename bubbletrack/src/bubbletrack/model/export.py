@@ -70,8 +70,18 @@ def export_rof_t_data(
     R = radius.copy().ravel().astype(np.float64)
     t = np.arange(1, len(R) + 1, dtype=np.float64)
 
-    rmax_val = R.max()
-    rmax_loc = int(R.argmax()) + 1  # 1-indexed
+    # Filter out invalid frames (radius <= 0 or NaN) before Rmax fitting
+    valid_mask = (R > 0) & ~np.isnan(R)
+    n_valid = int(valid_mask.sum())
+    if n_valid < 3:
+        return False, f"Not enough valid frames (need >= 3, got {n_valid})"
+
+    # Find Rmax among valid frames only
+    valid_R = R[valid_mask]
+    valid_indices = np.where(valid_mask)[0]  # 0-indexed
+    rmax_valid_pos = int(valid_R.argmax())
+    rmax_val = valid_R[rmax_valid_pos]
+    rmax_loc = int(valid_indices[rmax_valid_pos]) + 1  # 1-indexed
 
     # Boundary checks
     if rmax_loc - half < 1:
@@ -79,8 +89,14 @@ def export_rof_t_data(
     if rmax_loc + half > len(R):
         return False, "Rmax_Fit_Length exceeds data range (right boundary)!"
 
-    fit_indices = np.arange(rmax_loc - half, rmax_loc + half + 1)
+    # Build fit window, using only valid (radius > 0, non-NaN) frames
+    window_indices_1based = np.arange(rmax_loc - half, rmax_loc + half + 1)
+    window_mask = valid_mask[window_indices_1based - 1]
+    fit_indices = window_indices_1based[window_mask]
     fit_vals = R[fit_indices - 1]  # back to 0-indexed for array access
+
+    if len(fit_indices) < 3:
+        return False, "Not enough valid frames in Rmax fit window (need >= 3)"
 
     # Quadratic fit
     try:

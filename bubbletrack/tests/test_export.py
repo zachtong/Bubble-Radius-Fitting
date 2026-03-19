@@ -73,3 +73,29 @@ class TestExportRofTData:
         rmax = float(np.asarray(data["RmaxAll"]).flat[0])
         # Rmax in pixels is 100.0, so in um it should be 200.0
         assert abs(rmax - 200.0) < 1.0
+
+    def test_rmax_fit_with_invalid_gaps(self, tmp_path):
+        """Radius array with invalid (-1) entries should still export using valid values."""
+        # Peak at index 4 (frame 5) = 30.0, window [4,5,6] all valid
+        R = np.array([-1.0, 10.0, -1.0, 20.0, 30.0, 25.0, 15.0])
+        out = str(tmp_path / "gaps.mat")
+        ok, msg = export_rof_t_data(out, R, 1.0, 1.0, 3)
+        assert ok, f"Expected success but got: {msg}"
+        data = loadmat(out)
+        rmax = float(np.asarray(data["RmaxAll"]).flat[0])
+        # Rmax should be near 30.0 (the peak among valid frames)
+        assert rmax >= 30.0
+
+    def test_rmax_fit_all_invalid(self, tmp_path):
+        """All invalid radius values should return failure."""
+        R = np.array([-1.0, -1.0, -1.0, -1.0, -1.0])
+        ok, msg = export_rof_t_data(str(tmp_path / "bad.mat"), R, 1.0, 1.0, 3)
+        assert not ok
+        assert "Not enough valid frames" in msg
+
+    def test_rmax_fit_too_few_valid(self, tmp_path):
+        """Only 2 valid frames should return failure (need >= 3)."""
+        R = np.array([-1.0, 10.0, -1.0, 20.0, -1.0])
+        ok, msg = export_rof_t_data(str(tmp_path / "few.mat"), R, 1.0, 1.0, 3)
+        assert not ok
+        assert "Not enough valid frames" in msg
