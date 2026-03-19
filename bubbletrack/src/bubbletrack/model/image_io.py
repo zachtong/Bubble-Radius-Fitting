@@ -22,6 +22,14 @@ class ImageLoadError(Exception):
 # Supported extensions in priority order
 _EXTENSIONS = (".tiff", ".tif", ".png", ".jpg", ".jpeg", ".bmp")
 
+# Video file extensions
+VIDEO_EXTS = {".avi", ".mp4", ".mov", ".mkv"}
+
+
+def is_video_file(path: str) -> bool:
+    """Return True if *path* has a recognised video extension."""
+    return Path(path).suffix.lower() in VIDEO_EXTS
+
 
 def _natural_sort_key(s: str):
     """Sort key that handles embedded numbers naturally."""
@@ -70,8 +78,55 @@ def detect_bit_depth(path: str) -> int:
     return 255
 
 
-def load_and_normalize(
-    image_path: str,
+class VideoFrameReader:
+    """Lazy frame reader for video files using OpenCV VideoCapture."""
+
+    def __init__(self, path: str) -> None:
+        self._path = path
+        self._cap = cv2.VideoCapture(str(path))
+        if not self._cap.isOpened():
+            raise ImageLoadError(f"Cannot open video: {path}")
+        self._total = int(self._cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self._fps = self._cap.get(cv2.CAP_PROP_FPS)
+
+    @property
+    def total_frames(self) -> int:
+        return self._total
+
+    @property
+    def fps(self) -> float:
+        return self._fps
+
+    def read_frame(self, idx: int) -> np.ndarray:
+        """Read a single greyscale frame by 0-based index.
+
+        Raises ``ImageLoadError`` if the frame cannot be decoded.
+        """
+        if idx < 0 or idx >= self._total:
+            raise ImageLoadError(
+                f"Frame index {idx} out of range [0, {self._total}) "
+                f"for {self._path}"
+            )
+        self._cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        ret, frame = self._cap.read()
+        if not ret:
+            raise ImageLoadError(f"Cannot read frame {idx} from {self._path}")
+        if frame.ndim == 3:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return frame
+
+    def close(self) -> None:
+        """Release the underlying VideoCapture resource."""
+        if self._cap is not None:
+            self._cap.release()
+            self._cap = None
+
+    def __del__(self) -> None:
+        self.close()
+
+
+def normalize_frame(
+    raw: np.ndarray,
     sensitivity: float,
     gridx: tuple[int, int],
     gridy: tuple[int, int],
@@ -79,12 +134,15 @@ def load_and_normalize(
     gaussian_sigma: float = 0.0,
     clahe_clip: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Load an image, normalise to [0,1], adaptive-threshold, and extract ROI.
+    """Normalise a raw greyscale frame, adaptive-threshold, and extract ROI.
+
+    This is the core processing pipeline extracted from ``load_and_normalize``
+    so that it can be reused with frames from any source (file, video, etc.).
 
     Parameters
     ----------
-    image_path : str
-        Path to the image file.
+    raw : ndarray
+        Raw greyscale image (uint8 or uint16, 2-D).
     sensitivity : float
         Adaptive threshold sensitivity in [0, 1].  Higher = more white.
     gridx : (row_start, row_end)
@@ -103,14 +161,6 @@ def load_and_normalize(
     cur_img_binary_roi : ndarray
         ROI slice of *cur_img_binary*.
     """
-    logger.debug("Loading image: %s", image_path)
-    raw = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-    if raw is None:
-        logger.warning("Cannot read image: %s", image_path)
-        raise ImageLoadError(
-            f"Cannot read image (file may be missing or corrupted): {image_path}"
-        )
-
     # Convert to greyscale if needed
     if raw.ndim == 3:
         raw = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
@@ -167,3 +217,50 @@ def load_and_normalize(
     cur_img_binary_roi = cur_img_binary[rs, cs]
 
     return cur_img, cur_img_binary, cur_img_roi, cur_img_binary_roi
+
+
+def load_and_normalize(
+    image_path: str,
+    sensitivity: float,
+    gridx: tuple[int, int],
+    gridy: tuple[int, int],
+    *,
+    gaussian_sigma: float = 0.0,
+    clahe_clip: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Load an image, normalise to [0,1], adaptive-threshold, and extract ROI.
+
+    Parameters
+    ----------
+    image_path : str
+        Path to the image file.
+    sensitivity : float
+        Adaptive threshold sensitivity in [0, 1].  Higher = more white.
+    gridx : (row_start, row_end)
+        1-indexed inclusive row bounds for the ROI.
+    gridy : (col_start, col_end)
+        1-indexed inclusive column bounds for the ROI.
+
+    Returns
+    -------
+    cur_img : ndarray
+        Full normalised greyscale image in [0, 1].
+    cur_img_binary : ndarray
+        Full binary image (bool).
+    cur_img_roi : ndarray
+        ROI slice of *cur_img*.
+    cur_img_binary_roi : ndarray
+        ROI slice of *cur_img_binary*.
+    """
+    logger.debug("Loading image: %s", image_path)
+    raw = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    if raw is None:
+        logger.warning("Cannot read image: %s", image_path)
+        raise ImageLoadError(
+            f"Cannot read image (file may be missing or corrupted): {image_path}"
+        )
+
+    return normalize_frame(
+        raw, sensitivity, gridx, gridy,
+        gaussian_sigma=gaussian_sigma, clahe_clip=clahe_clip,
+    )

@@ -137,6 +137,7 @@ class AppController:
 
         # Image source
         lp.image_source.folder_selected.connect(self.file_ctrl.on_folder_selected)
+        lp.image_source.video_selected.connect(self.file_ctrl.on_video_selected)
 
         # Frame scrubber
         self.w.frame_scrubber.value_changed.connect(self.file_ctrl.on_frame_changed)

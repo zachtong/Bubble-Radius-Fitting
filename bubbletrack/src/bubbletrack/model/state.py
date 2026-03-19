@@ -75,6 +75,10 @@ class AppState:
     # Export
     save_path: str = ""
 
+    # Video mode (mutually exclusive with folder mode)
+    video_path: str = ""
+    video_reader: object = None  # VideoFrameReader | None
+
     # Runtime state
     realtime_play: bool = False
     cur_img: object = None          # np.ndarray | None

@@ -13,7 +13,7 @@ from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.conventions import frame_to_display
 from bubbletrack.model.detection import detect_bubble
-from bubbletrack.model.image_io import load_and_normalize
+from bubbletrack.model.image_io import load_and_normalize, normalize_frame
 from bubbletrack.model.removing_factor import compute_removing_factor
 from bubbletrack.model.state import AppState, update_state
 from bubbletrack.ui.image_compare import CompareMode, create_overlay, create_wipe
@@ -52,12 +52,28 @@ def display_frame(
     if not state.images:
         return
     try:
-        # Check cache before loading from disk
+        # Check cache before loading from disk / video
         cache_key = _build_cache_key(state.images[idx], state)
         cached = cache.get(cache_key) if cache is not None else None
 
         if cached is not None:
             cur_img, _, _, binary_roi = cached
+        elif state.video_reader is not None:
+            # Video mode: extract frame then normalise
+            raw = state.video_reader.read_frame(idx)
+            cur_img, _, _, binary_roi = normalize_frame(
+                raw,
+                state.img_thr,
+                state.gridx,
+                state.gridy,
+                gaussian_sigma=state.gaussian_sigma,
+                clahe_clip=state.clahe_clip,
+            )
+            if cache is not None:
+                cache.put(
+                    cache_key,
+                    (cur_img, None, None, binary_roi),
+                )
         else:
             cur_img, _, _, binary_roi = load_and_normalize(
                 state.images[idx],

@@ -10,9 +10,10 @@ from PyQt6.QtWidgets import (
 
 
 class ImageSource(QWidget):
-    """Folder selector that emits the chosen path."""
+    """Folder/video selector that emits the chosen path."""
 
     folder_selected = pyqtSignal(str)
+    video_selected = pyqtSignal(str)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -26,13 +27,20 @@ class ImageSource(QWidget):
 
         row = QHBoxLayout()
         self._path_edit = QLineEdit()
-        self._path_edit.setPlaceholderText("Select image folder...")
+        self._path_edit.setPlaceholderText("Select image folder or video...")
         self._path_edit.setReadOnly(True)
         row.addWidget(self._path_edit, 1)
 
-        self._browse_btn = QPushButton("Browse")
+        self._browse_btn = QPushButton("Folder")
+        self._browse_btn.setToolTip("Browse for image folder")
         self._browse_btn.clicked.connect(self._browse)
         row.addWidget(self._browse_btn)
+
+        self._browse_video_btn = QPushButton("Video")
+        self._browse_video_btn.setToolTip("Browse for video file (AVI, MP4, MOV, MKV)")
+        self._browse_video_btn.clicked.connect(self._browse_video)
+        row.addWidget(self._browse_video_btn)
+
         layout.addLayout(row)
 
         self._info_label = QLabel("")
@@ -44,6 +52,15 @@ class ImageSource(QWidget):
         if folder:
             self._path_edit.setText(folder)
             self.folder_selected.emit(folder)
+
+    def _browse_video(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Video File", "",
+            "Video Files (*.avi *.mp4 *.mov *.mkv);;All Files (*)",
+        )
+        if path:
+            self._path_edit.setText(path)
+            self.video_selected.emit(path)
 
     def set_info(self, text: str):
         self._info_label.setText(text)
