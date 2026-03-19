@@ -39,6 +39,7 @@ a = Analysis(
         'bubbletrack.model.image_io',
         'bubbletrack.model.removing_factor',
         'bubbletrack.model.state',
+        'pyqtgraph',
     ],
     hookspath=[],
     hooksconfig={},

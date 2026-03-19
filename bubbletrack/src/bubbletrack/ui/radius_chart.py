@@ -1,66 +1,93 @@
-"""Matplotlib-embedded R(t) scatter chart."""
+"""Interactive R-t scatter chart using pyqtgraph."""
 
 from __future__ import annotations
 
 import numpy as np
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QSizePolicy
+import pyqtgraph as pg
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 
 class RadiusChart(QWidget):
-    """Red ``+`` scatter chart of radius vs frame number."""
+    """Scatter plot of bubble radius vs frame number.
+
+    Uses pyqtgraph for 10-100x faster updates compared to Matplotlib.
+    Supports click-to-jump, zoom, and pan interactivity.
+
+    Signals:
+        point_clicked(int): Emitted when user clicks a data point,
+                           with the 0-based frame index.
+    """
+
+    point_clicked = pyqtSignal(int)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setMinimumHeight(350)
         self.setMaximumHeight(500)
 
-        self._fig = Figure(figsize=(6, 5), dpi=100)
-        self._fig.patch.set_facecolor("#F8FAFC")
-        self._ax = self._fig.add_subplot(111)
-        self._canvas = FigureCanvasQTAgg(self._fig)
-        self._canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self._canvas)
+
+        # Configure pyqtgraph plot widget
+        self._plot = pg.PlotWidget()
+        self._plot.setBackground("#F8FAFC")
+        self._plot.setLabel("left", "Radius (px)")
+        self._plot.setLabel("bottom", "Frame")
+        self._plot.showGrid(x=True, y=True, alpha=0.3)
+
+        # Style axes to match the app theme
+        for axis_name in ("left", "bottom"):
+            axis = self._plot.getAxis(axis_name)
+            axis.setPen(pg.mkPen("#E2E8F0"))
+            axis.setTextPen(pg.mkPen("#64748B"))
+
+        # Scatter plot item — red "+" markers
+        self._scatter = pg.ScatterPlotItem(
+            pen=pg.mkPen("#EF4444", width=1.5),
+            brush=pg.mkBrush("#EF4444"),
+            symbol="+",
+            size=10,
+        )
+        self._plot.addItem(self._scatter)
+        self._scatter.sigClicked.connect(self._on_scatter_clicked)
+
+        layout.addWidget(self._plot)
 
         self._total_frames: int = 0
-        self._setup_axes()
+        self._frames: np.ndarray = np.array([])
+        self._radii: np.ndarray = np.array([])
 
-    def _setup_axes(self):
-        ax = self._ax
-        ax.set_facecolor("#F8FAFC")
-        ax.set_xlabel("Frame", fontsize=10, color="#64748B")
-        ax.set_ylabel("Radius (px)", fontsize=10, color="#64748B")
-        ax.tick_params(colors="#94A3B8", labelsize=9)
-        for spine in ax.spines.values():
-            spine.set_color("#E2E8F0")
-        if self._total_frames > 0:
-            ax.set_xlim(0.5, self._total_frames + 0.5)
-        self._fig.tight_layout(pad=1.5)
+    def plot_all(self, frames: np.ndarray, radii: np.ndarray) -> None:
+        """Clear and replot all valid data points (radius > 0)."""
+        mask = radii > 0
+        if not np.any(mask):
+            self._scatter.setData([], [])
+            self._frames = np.array([])
+            self._radii = np.array([])
+            return
+        self._frames = frames[mask]
+        self._radii = radii[mask]
+        self._scatter.setData(self._frames, self._radii)
 
-    def set_total_frames(self, n: int):
+    def set_total_frames(self, n: int) -> None:
         """Fix the x-axis range to [1, n]."""
         self._total_frames = n
         if n > 0:
-            self._ax.set_xlim(0.5, n + 0.5)
-            self._canvas.draw_idle()
+            self._plot.setXRange(0.5, n + 0.5, padding=0)
 
-    def plot_all(self, frames: np.ndarray, radii: np.ndarray):
-        """Clear and replot all valid data points."""
-        self._ax.clear()
-        self._setup_axes()
-        mask = radii > 0
-        if mask.any():
-            self._ax.plot(
-                frames[mask], radii[mask], "+",
-                color="#EF4444", markersize=8, markeredgewidth=1.5,
-            )
-        self._canvas.draw_idle()
+    def clear(self) -> None:
+        """Remove all data points from the chart."""
+        self._scatter.setData([], [])
+        self._frames = np.array([])
+        self._radii = np.array([])
 
-    def clear(self):
-        self._ax.clear()
-        self._setup_axes()
-        self._canvas.draw_idle()
+    def _on_scatter_clicked(self, plot, points, ev=None) -> None:
+        """Handle click on scatter point — emit 0-based frame index.
+
+        The sigClicked signature is ``(plot, points)`` in pyqtgraph 0.13+.
+        We accept an optional third ``ev`` arg for forward-compatibility.
+        """
+        if points:
+            frame_num = int(points[0].pos().x())  # 1-based frame number
+            self.point_clicked.emit(frame_num - 1)  # emit 0-based index

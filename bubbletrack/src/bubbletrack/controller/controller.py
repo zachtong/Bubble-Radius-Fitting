@@ -150,3 +150,6 @@ class AppController:
 
         # ROI selection from image panel
         self.w.original_panel.roi_selected.connect(self.pretune_ctrl.on_roi_selected)
+
+        # R-t chart click-to-jump
+        self.w.radius_chart.point_clicked.connect(self.file_ctrl.on_frame_changed)
