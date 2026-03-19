@@ -1,9 +1,18 @@
-"""Application state data class."""
+"""Frozen application state dataclass with immutable update helper.
+
+AppState is a frozen dataclass: field reassignment raises FrozenInstanceError.
+All state transitions go through ``update_state()`` which returns a new instance
+via ``dataclasses.replace()``, making state changes explicit and trackable.
+
+Pragmatic compromise: NumPy array *contents* remain mutable (element-level
+assignment like ``state.radius[idx] = value`` still works) because copying
+large arrays on every frame would be wasteful.  The key benefit is that all
+*field-level* reassignments are funneled through ``update_state()``.
+"""
 
 from __future__ import annotations
 
-import dataclasses
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -15,12 +24,15 @@ from bubbletrack.model.constants import (
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class AppState:
-    """Mutable application state shared between controller and views."""
+    """Immutable application state shared between controller and views.
 
-    # Image file list
-    images: list[str] = field(default_factory=list)
+    Use ``update_state(state, field=value)`` to create a modified copy.
+    """
+
+    # Image file list (tuple for true immutability)
+    images: tuple[str, ...] = ()
     folder_path: str = ""
     image_no: int = 0  # 0-indexed (UI displays +1)
 
@@ -34,8 +46,8 @@ class AppState:
     # Removing factor slider 0-100
     removing_factor: int = DEFAULT_REMOVING_FACTOR
 
-    # Bubble-crosses-edge flags [Top, Right, Down, Left]
-    bubble_cross_edges: list[bool] = field(default_factory=lambda: [False] * 4)
+    # Bubble-crosses-edge flags [Top, Right, Down, Left] (tuple for immutability)
+    bubble_cross_edges: tuple[bool, ...] = (False, False, False, False)
 
     # Morphological closing radius (0 = skip)
     removing_obj_radius: int = 0
@@ -46,10 +58,13 @@ class AppState:
     closing_radius: int = 0
     opening_radius: int = 0
 
-    # Results arrays — allocated after folder is loaded
-    radius: np.ndarray | None = None          # (N,) float, -1 = unprocessed
-    circle_fit_par: np.ndarray | None = None   # (N, 2) [row_c, col_c]
-    circle_xy: list | None = None              # list of (M, 2) arrays
+    # Results arrays — allocated after folder is loaded.
+    # Typed as object for frozen dataclass compatibility with NumPy.
+    # Contents are mutable (element-level assignment), but field reassignment
+    # is blocked by frozen=True.
+    radius: object = None          # np.ndarray (N,) float, -1 = unprocessed
+    circle_fit_par: object = None  # np.ndarray (N, 2) [row_c, col_c]
+    circle_xy: object = None       # list of (M, 2) arrays | None
 
     # Display parameters
     img_grayscale_max: int = 65535
@@ -62,8 +77,8 @@ class AppState:
 
     # Runtime state
     realtime_play: bool = False
-    cur_img: np.ndarray | None = None
-    cur_img_binary_roi: np.ndarray | None = None
+    cur_img: object = None          # np.ndarray | None
+    cur_img_binary_roi: object = None  # np.ndarray | None
 
     # ------------------------------------------------------------------ #
     # Helpers
@@ -73,8 +88,25 @@ class AppState:
     def total_frames(self) -> int:
         return len(self.images)
 
-    def init_results(self, n: int) -> None:
-        """Allocate result arrays for *n* frames, filled with -1 / NaN."""
-        self.radius = np.full(n, -1.0)
-        self.circle_fit_par = np.full((n, 2), np.nan)
-        self.circle_xy = [None] * n
+    @classmethod
+    def create_empty(cls) -> AppState:
+        """Create a fresh empty state with all defaults."""
+        return cls()
+
+    def with_results_initialized(self, n: int) -> AppState:
+        """Return a new state with result arrays allocated for *n* frames."""
+        return update_state(
+            self,
+            radius=np.full(n, -1.0),
+            circle_fit_par=np.full((n, 2), np.nan),
+            circle_xy=[None] * n,
+        )
+
+
+def update_state(state: AppState, **kwargs) -> AppState:
+    """Create a new AppState with the specified fields replaced.
+
+    Uses ``dataclasses.replace()`` under the hood, so only valid field
+    names are accepted.  Raises ``TypeError`` for unknown fields.
+    """
+    return replace(state, **kwargs)

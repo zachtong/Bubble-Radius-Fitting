@@ -25,7 +25,7 @@ from bubbletrack.model.image_io import (
     scan_folder,
 )
 from bubbletrack.model.removing_factor import compute_removing_factor
-from bubbletrack.model.state import AppState
+from bubbletrack.model.state import AppState, update_state
 from bubbletrack.controller.worker import BatchWorker
 
 logger = logging.getLogger(__name__)
@@ -119,17 +119,19 @@ class AppController:
 
         logger.info("Loaded %d images from %s", len(images), folder)
 
-        self.state.folder_path = folder
-        self.state.images = images
-        self.state.image_no = 0
-        self.state.img_grayscale_max = detect_bit_depth(images[0])
-        self.state.init_results(len(images))
+        self.state = update_state(
+            self.state,
+            folder_path=folder,
+            images=tuple(images),
+            image_no=0,
+            img_grayscale_max=detect_bit_depth(images[0]),
+        )
+        self.state = self.state.with_results_initialized(len(images))
 
         # Set default ROI to full image
         first_img, _, _, _ = load_and_normalize(images[0], 0.5, (1, 99999), (1, 99999))
         h, w = first_img.shape
-        self.state.gridx = (1, h)
-        self.state.gridy = (1, w)
+        self.state = update_state(self.state, gridx=(1, h), gridy=(1, w))
         self._max_radius = float(max(h, w))
 
         # Update UI
@@ -148,7 +150,7 @@ class AppController:
         self._display_frame(0)
 
     def _on_frame_changed(self, idx: int):
-        self.state.image_no = idx
+        self.state = update_state(self.state, image_no=idx)
         self._display_frame(idx)
         # Sync tab frame spinboxes
         self.w.left_panel.pretune_tab.set_frame_value(idx)
@@ -158,7 +160,7 @@ class AppController:
         """Frame selected from a tab's frame spinbox."""
         if not self.state.images or idx < 0 or idx >= len(self.state.images):
             return
-        self.state.image_no = idx
+        self.state = update_state(self.state, image_no=idx)
         self.w.frame_scrubber.set_value(idx)
         self.w.left_panel.pretune_tab.set_frame_value(idx)
         self.w.left_panel.manual_tab.set_frame_value(idx)
@@ -184,8 +186,9 @@ class AppController:
                 gaussian_sigma=self.state.gaussian_sigma,
                 clahe_clip=self.state.clahe_clip,
             )
-            self.state.cur_img = cur_img
-            self.state.cur_img_binary_roi = binary_roi
+            self.state = update_state(
+                self.state, cur_img=cur_img, cur_img_binary_roi=binary_roi,
+            )
 
             self.w.original_panel.set_image(cur_img)
 
@@ -250,23 +253,29 @@ class AppController:
     # ------------------------------------------------------------------ #
 
     def _on_threshold_changed(self, v: float):
-        self.state.img_thr = v
+        self.state = update_state(self.state, img_thr=v)
         self._display_timer.start()  # debounced
 
     def _on_removing_factor_changed(self, v: int):
-        self.state.removing_factor = v
+        self.state = update_state(self.state, removing_factor=v)
         self._preview_timer.start()  # debounced
 
     def _on_filters_changed(self):
         p = self.w.left_panel.pretune_tab.get_filter_params()
-        self.state.gaussian_sigma = p["gaussian_sigma"]
-        self.state.clahe_clip = p["clahe_clip"]
-        self.state.closing_radius = p["closing_radius"]
-        self.state.opening_radius = p["opening_radius"]
+        self.state = update_state(
+            self.state,
+            gaussian_sigma=p["gaussian_sigma"],
+            clahe_clip=p["clahe_clip"],
+            closing_radius=p["closing_radius"],
+            opening_radius=p["opening_radius"],
+        )
         self._preview_timer.start()  # debounced
 
     def _on_edges_changed(self):
-        self.state.bubble_cross_edges = self.w.left_panel.pretune_tab.get_edge_flags()
+        self.state = update_state(
+            self.state,
+            bubble_cross_edges=tuple(self.w.left_panel.pretune_tab.get_edge_flags()),
+        )
         self._preview_detection()
 
     def _preview_detection(self):
@@ -311,8 +320,7 @@ class AppController:
             r1 = max(1, min(r1, h))
             c0 = max(1, min(c0, w))
             c1 = max(1, min(c1, w))
-        self.state.gridx = (r0, r1)
-        self.state.gridy = (c0, c1)
+        self.state = update_state(self.state, gridx=(r0, r1), gridy=(c0, c1))
         self.w.left_panel.pretune_tab.set_roi((r0, r1), (c0, c1))
         self.w.header.set_status("ROI selected", "#22C55E")
         self._display_frame(self.state.image_no)
@@ -506,7 +514,7 @@ class AppController:
         self.w.frame_scrubber.blockSignals(True)
         self.w.frame_scrubber.set_value(idx)
         self.w.frame_scrubber.blockSignals(False)
-        self.state.image_no = idx
+        self.state = update_state(self.state, image_no=idx)
 
         self.w.status_bar.update_frame(
             frame_to_display(idx), self.state.total_frames,
@@ -557,7 +565,7 @@ class AppController:
 
     def _on_auto_clear(self):
         if self.state.images:
-            self.state.init_results(len(self.state.images))
+            self.state = self.state.with_results_initialized(len(self.state.images))
         self.w.left_panel.automatic_tab.reset_progress()
         self.w.radius_chart.clear()
         self._display_frame(self.state.image_no)
