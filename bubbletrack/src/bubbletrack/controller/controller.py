@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+import os
+
 from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QFileDialog
 
 from bubbletrack.controller.auto_controller import AutoController
 from bubbletrack.controller.display_mixin import display_frame
@@ -14,8 +18,11 @@ from bubbletrack.event_bus import EventBus
 from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.constants import DISPLAY_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS
 from bubbletrack.model.config import load_config
+from bubbletrack.model.session import save_session, load_session
 from bubbletrack.model.state import AppState, update_state
 from bubbletrack.ui.shortcuts import setup_shortcuts
+
+logger = logging.getLogger(__name__)
 
 
 class AppController:
@@ -165,3 +172,62 @@ class AppController:
 
         # R-t chart click-to-jump
         self.w.radius_chart.point_clicked.connect(self.file_ctrl.on_frame_changed)
+
+        # Session save/load (menubar File menu)
+        self.w.save_session_requested.connect(self._on_save_session)
+        self.w.load_session_requested.connect(self._on_load_session)
+
+    # ------------------------------------------------------------------ #
+    #  Session save/load
+    # ------------------------------------------------------------------ #
+
+    def _on_save_session(self) -> None:
+        """Prompt the user for a path and save the current session."""
+        default_dir = self._state.folder_path or os.path.expanduser("~")
+        path, _ = QFileDialog.getSaveFileName(
+            self.w, "Save Session", default_dir,
+            "BubbleTrack Session (*.brt);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            save_session(path, self._state)
+            self.w.header.set_status(
+                f"Session saved: {os.path.basename(path)}", "#22C55E",
+            )
+        except Exception as exc:
+            logger.error("Session save failed: %s", exc)
+            self.w.header.set_status(f"Save failed: {exc}", "#FCD34D")
+
+    def _on_load_session(self) -> None:
+        """Prompt the user for a .brt file and restore the session."""
+        default_dir = self._state.folder_path or os.path.expanduser("~")
+        path, _ = QFileDialog.getOpenFileName(
+            self.w, "Load Session", default_dir,
+            "BubbleTrack Session (*.brt);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            data = load_session(path)
+        except (ValueError, FileNotFoundError) as exc:
+            logger.error("Session load failed: %s", exc)
+            self.w.header.set_status(f"Load failed: {exc}", "#FCD34D")
+            return
+
+        # Remove keys that are not AppState fields (e.g. "version")
+        data.pop("version", None)
+        try:
+            self._state = update_state(AppState(), **data)
+        except TypeError as exc:
+            logger.error("Session restore failed: %s", exc)
+            self.w.header.set_status(f"Restore failed: {exc}", "#FCD34D")
+            return
+
+        # Reload the folder if one was saved and re-display
+        if self._state.folder_path:
+            self.file_ctrl.on_folder_selected(self._state.folder_path)
+
+        self.w.header.set_status(
+            f"Session loaded: {os.path.basename(path)}", "#22C55E",
+        )

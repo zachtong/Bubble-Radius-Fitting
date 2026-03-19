@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import (
-    QHBoxLayout, QMainWindow, QPushButton, QVBoxLayout, QWidget,
-    QSizePolicy,
+    QHBoxLayout, QMainWindow, QMenu, QMenuBar, QPushButton,
+    QVBoxLayout, QWidget, QSizePolicy,
 )
 
 from bubbletrack.ui.header_bar import HeaderBar
@@ -20,10 +21,17 @@ from bubbletrack.ui.frame_scrubber import FrameScrubber
 class MainWindow(QMainWindow):
     """Top-level window following the Figma 3-panel design."""
 
+    # Session persistence signals (handled by the controller)
+    save_session_requested = pyqtSignal()
+    load_session_requested = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Bubble Radius Fitting")
         self.setMinimumSize(1280, 960)
+
+        # Menubar
+        self._build_menubar()
 
         central = QWidget()
         self.setCentralWidget(central)
@@ -87,6 +95,23 @@ class MainWindow(QMainWindow):
         # Status bar
         self.status_bar = StatusBar()
         root.addWidget(self.status_bar)
+
+    # -- Menubar -------------------------------------------------------- #
+
+    def _build_menubar(self) -> None:
+        """Create the application menubar with File > Save/Load Session."""
+        menubar: QMenuBar = self.menuBar()
+        file_menu: QMenu = menubar.addMenu("&File")
+
+        save_action = QAction("&Save Session...", self)
+        save_action.setShortcut(QKeySequence.StandardKey.Save)
+        save_action.triggered.connect(self.save_session_requested.emit)
+        file_menu.addAction(save_action)
+
+        load_action = QAction("&Load Session...", self)
+        load_action.setShortcut(QKeySequence.StandardKey.Open)
+        load_action.triggered.connect(self.load_session_requested.emit)
+        file_menu.addAction(load_action)
 
     # -- Compare mode helpers --
 
