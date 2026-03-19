@@ -29,6 +29,7 @@ class AutoController(BaseController):
         super().__init__(bus, get_state, set_state, window)
         self._worker: BatchWorker | None = None
         self._auto_last_display: float = 0.0
+        self._auto_start_time: float = 0.0
         self._get_max_radius = get_max_radius
 
     # -- public handlers -------------------------------------------------- #
@@ -70,6 +71,7 @@ class AutoController(BaseController):
         self.w.header.set_status("Processing...", "#FCD34D")
         self.w.status_bar.update_mode("Automatic")
         self._auto_last_display = 0.0  # force first frame to display
+        self._auto_start_time = time.monotonic()
         self._worker.start()
 
     def on_auto_stop(self) -> None:
@@ -91,7 +93,15 @@ class AutoController(BaseController):
     # (guaranteed by Qt's queued signal/slot connection for cross-thread signals).
 
     def _on_auto_progress(self, current: int, total: int) -> None:
-        self.w.left_panel.automatic_tab.set_progress(current, total)
+        # Calculate ETA based on elapsed time
+        if current > 0:
+            elapsed = time.monotonic() - self._auto_start_time
+            eta_sec = elapsed / current * (total - current)
+            minutes, secs = divmod(int(eta_sec), 60)
+            eta_text = f"{minutes}m {secs}s remaining"
+        else:
+            eta_text = "Calculating..."
+        self.w.left_panel.automatic_tab.set_progress(current, total, eta_text)
 
     def _on_auto_frame_done(self, idx: int, radius: float, edge_xy, binary_roi) -> None:
         # Always update state (fast, no UI)

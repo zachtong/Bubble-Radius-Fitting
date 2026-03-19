@@ -86,10 +86,13 @@ class AutomaticTab(QWidget):
         """Return 1-indexed (start, end)."""
         return self._start_spin.value(), self._end_spin.value()
 
-    def set_progress(self, current: int, total: int):
+    def set_progress(self, current: int, total: int, eta: str = "") -> None:
         pct = int(current / max(total, 1) * 100)
         self._progress.setValue(pct)
-        self._progress_label.setText(f"Processing: {current}/{total} ({pct}%)")
+        text = f"Processing: {current}/{total} ({pct}%)"
+        if eta:
+            text += f" — {eta}"
+        self._progress_label.setText(text)
 
     def set_running(self, running: bool):
         self._fit_btn.setEnabled(not running)
