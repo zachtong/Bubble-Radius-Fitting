@@ -14,8 +14,31 @@ from bubbletrack.controller.display_mixin import (
 )
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.circle_fit import circle_fit_taubin
+from bubbletrack.model.constants import MIN_POINT_DISTANCE_PX
 
 logger = logging.getLogger(__name__)
+
+
+def is_duplicate_point(
+    new_pt: np.ndarray,
+    existing: list[tuple[float, float]],
+    threshold: float = MIN_POINT_DISTANCE_PX,
+) -> bool:
+    """Return True if *new_pt* is within *threshold* px of any existing point.
+
+    Parameters
+    ----------
+    new_pt : (2,) array
+        New point as ``[row, col]``.
+    existing : list of (row, col) tuples
+        Already-accepted manual points.
+    threshold : float
+        Minimum Euclidean distance in pixels.
+    """
+    for pt in existing:
+        if np.linalg.norm(np.array(pt) - new_pt) < threshold:
+            return True
+    return False
 
 
 class ManualController(BaseController):
@@ -38,6 +61,10 @@ class ManualController(BaseController):
 
     def on_point_clicked(self, x: float, y: float) -> None:
         """x = col, y = row in scene coordinates."""
+        new_pt = np.array([y, x])  # row, col
+        if is_duplicate_point(new_pt, self._manual_points):
+            logger.info("Ignoring duplicate point near (%.1f, %.1f)", x, y)
+            return
         self._manual_points.append((y, x))  # store as (row, col)
         n = len(self._manual_points)
         self.w.left_panel.manual_tab.set_point_count(n)

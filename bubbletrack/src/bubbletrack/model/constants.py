@@ -42,6 +42,12 @@ TAUBIN_MAX_ITER: int = 20
 TAUBIN_MIN_POINTS: int = 3
 """Minimum number of boundary points required for circle fitting."""
 
+MIN_POINT_DISTANCE_PX: float = 5.0
+"""Minimum Euclidean distance (px) between manual edge points.
+
+Points closer than this threshold are rejected to prevent near-duplicate
+entries that destabilize the Taubin circle fitter."""
+
 # ------------------------------------------------------------------ #
 #  Export defaults
 # ------------------------------------------------------------------ #
