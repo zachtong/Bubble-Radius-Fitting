@@ -36,10 +36,15 @@ class PretuneController(BaseController):
         self._get_max_radius = get_max_radius
         self._cache = cache
 
+        # Preview detection cache: skip load_and_normalize when only RF changes
+        self._last_binary_roi = None
+        self._last_binary_params: tuple | None = None
+
     # -- public handlers -------------------------------------------------- #
 
     def on_threshold_changed(self, v: float) -> None:
         self._update(img_thr=v)
+        self._invalidate_binary_cache()
         if self._cache is not None:
             self._cache.invalidate()
         self._display_timer.start()  # debounced
@@ -56,9 +61,15 @@ class PretuneController(BaseController):
             closing_radius=p["closing_radius"],
             opening_radius=p["opening_radius"],
         )
+        self._invalidate_binary_cache()
         if self._cache is not None:
             self._cache.invalidate()
         self._preview_timer.start()  # debounced
+
+    def _invalidate_binary_cache(self) -> None:
+        """Clear the preview binary ROI cache."""
+        self._last_binary_roi = None
+        self._last_binary_params = None
 
     def on_edges_changed(self) -> None:
         self._update(
@@ -71,6 +82,9 @@ class PretuneController(BaseController):
 
         MATLAB's realtimeDisplay_connectedArea calls detectBubble with
         removeobjradius=0 to skip morphological closing for speed.
+
+        When only removing_factor changes, the cached binary_roi is reused
+        to skip the expensive load_and_normalize step.
         """
         if not self.state.images:
             return
@@ -79,12 +93,28 @@ class PretuneController(BaseController):
             self.state.removing_factor, self.state.gridx, self.state.gridy,
         )
         try:
-            _, _, _, binary_roi = load_and_normalize(
-                self.state.images[idx], self.state.img_thr,
-                self.state.gridx, self.state.gridy,
-                gaussian_sigma=self.state.gaussian_sigma,
-                clahe_clip=self.state.clahe_clip,
+            # Check if binary ROI can be reused (only RF or edges changed)
+            current_params = (
+                self.state.images[idx],
+                self.state.img_thr,
+                self.state.gridx,
+                self.state.gridy,
+                self.state.gaussian_sigma,
+                self.state.clahe_clip,
             )
+            if (current_params == self._last_binary_params
+                    and self._last_binary_roi is not None):
+                binary_roi = self._last_binary_roi
+            else:
+                _, _, _, binary_roi = load_and_normalize(
+                    self.state.images[idx], self.state.img_thr,
+                    self.state.gridx, self.state.gridy,
+                    gaussian_sigma=self.state.gaussian_sigma,
+                    clahe_clip=self.state.clahe_clip,
+                )
+                self._last_binary_roi = binary_roi
+                self._last_binary_params = current_params
+
             processed, _ = detect_bubble(
                 binary_roi, self.state.bubble_cross_edges, rf,
                 self.state.gridx, self.state.gridy,
@@ -106,6 +136,7 @@ class PretuneController(BaseController):
             h, w = self.state.cur_img.shape[:2]
             (r0, r1), (c0, c1) = clamp_roi((r0, r1), (c0, c1), h, w)
         self._update(gridx=(r0, r1), gridy=(c0, c1))
+        self._invalidate_binary_cache()
         if self._cache is not None:
             self._cache.invalidate()
         self.w.left_panel.pretune_tab.set_roi((r0, r1), (c0, c1))
