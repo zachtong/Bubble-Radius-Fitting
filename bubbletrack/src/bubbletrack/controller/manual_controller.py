@@ -15,6 +15,7 @@ from bubbletrack.controller.display_mixin import (
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import MIN_POINT_DISTANCE_PX
+from bubbletrack.model.undo import UndoStack
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +50,13 @@ class ManualController(BaseController):
         super().__init__(bus, get_state, set_state, window)
         self._manual_points: list[tuple[float, float]] = []
         self._get_max_radius = get_max_radius
+        self._undo_stack = UndoStack()
 
     # -- public handlers -------------------------------------------------- #
 
     def on_manual_select(self) -> None:
         self._manual_points.clear()
+        self._undo_stack.clear()
         self.w.left_panel.manual_tab.set_point_count(0)
         self.w.original_panel.set_mode("point")
         self.w.header.set_status("Click on bubble edge", "#FCD34D")
@@ -65,6 +68,8 @@ class ManualController(BaseController):
         if is_duplicate_point(new_pt, self._manual_points):
             logger.info("Ignoring duplicate point near (%.1f, %.1f)", x, y)
             return
+        # Snapshot current points before adding the new one
+        self._undo_stack.push(list(self._manual_points))
         self._manual_points.append((y, x))  # store as (row, col)
         n = len(self._manual_points)
         self.w.left_panel.manual_tab.set_point_count(n)
@@ -103,8 +108,24 @@ class ManualController(BaseController):
         self._manual_points.clear()
         self.w.left_panel.manual_tab.reset()
 
+    def undo_last_point(self) -> None:
+        """Undo the last point click, restoring the previous points list."""
+        snapshot = self._undo_stack.undo()
+        if snapshot is None:
+            return
+        self._manual_points = snapshot
+        n = len(self._manual_points)
+        self.w.left_panel.manual_tab.set_point_count(n)
+        # Redraw all current points
+        self.w.original_panel.clear_overlays()
+        if self._manual_points:
+            pts = np.array(self._manual_points)
+            self.w.original_panel.draw_points(pts, "#EF4444", 4.0)
+        logger.info("Undo: %d points remaining", n)
+
     def on_manual_clear(self) -> None:
         self._manual_points.clear()
+        self._undo_stack.clear()
         self.w.left_panel.manual_tab.reset()
         self.w.original_panel.set_mode("normal")
 
@@ -129,3 +150,4 @@ class ManualController(BaseController):
     def clear_points(self) -> None:
         """Clear the manual points list (called on tab change)."""
         self._manual_points.clear()
+        self._undo_stack.clear()

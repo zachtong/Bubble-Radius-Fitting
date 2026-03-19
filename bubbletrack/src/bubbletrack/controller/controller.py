@@ -84,6 +84,7 @@ class AppController:
             "zoom_in": self.w.original_panel._zoom_in,
             "zoom_out": self.w.original_panel._zoom_out,
             "zoom_reset": self.w.original_panel._zoom_reset,
+            "undo": self.manual_ctrl.undo_last_point,
         })
 
     # ------------------------------------------------------------------ #

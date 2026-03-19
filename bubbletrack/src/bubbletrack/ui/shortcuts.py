@@ -16,7 +16,7 @@ def setup_shortcuts(window: QWidget, callbacks: dict) -> list[QShortcut]:
     callbacks : dict
         Maps action names to callables:
         ``"frame_prev"``, ``"frame_next"``, ``"zoom_in"``,
-        ``"zoom_out"``, ``"zoom_reset"``.
+        ``"zoom_out"``, ``"zoom_reset"``, ``"undo"``.
 
     Returns
     -------
@@ -30,6 +30,7 @@ def setup_shortcuts(window: QWidget, callbacks: dict) -> list[QShortcut]:
         "=": "zoom_in",  # for keyboards without numpad
         "-": "zoom_out",
         "0": "zoom_reset",
+        "Ctrl+Z": "undo",
     }
     shortcuts: list[QShortcut] = []
     for key, action in bindings.items():
