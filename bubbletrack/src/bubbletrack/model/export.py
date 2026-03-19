@@ -1,6 +1,9 @@
-"""Export radius data to .mat files."""
+"""Export radius data to .mat, CSV and Excel files."""
 
 from __future__ import annotations
+
+import csv
+from pathlib import Path
 
 import numpy as np
 import scipy.io
@@ -168,3 +171,138 @@ def export_rof_t_data(
     })
 
     return True, ""
+
+
+# ---------------------------------------------------------------------------
+# CSV / Excel export
+# ---------------------------------------------------------------------------
+
+def _build_header(
+    *, has_fps: bool, has_scale: bool,
+) -> list[str]:
+    """Build the column header list for CSV/Excel export."""
+    header: list[str] = ["Frame"]
+    if has_fps:
+        header.append("Time_s")
+    header.extend(["Radius_px", "Center_Row_px", "Center_Col_px"])
+    if has_scale:
+        header.extend(["Radius_um", "Center_Row_um", "Center_Col_um"])
+    return header
+
+
+def _build_row(
+    frame_idx: int,
+    radius_val: float,
+    center_row: float,
+    center_col: float,
+    *,
+    fps: float | None,
+    um2px: float | None,
+) -> list[str]:
+    """Build a single data row for CSV/Excel export."""
+    row: list[str] = [str(frame_idx + 1)]
+    if fps is not None:
+        row.append(f"{frame_idx / fps:.8f}")
+    row.extend([
+        f"{radius_val:.4f}",
+        f"{center_row:.4f}",
+        f"{center_col:.4f}",
+    ])
+    if um2px is not None:
+        row.extend([
+            f"{radius_val * um2px:.4f}",
+            f"{center_row * um2px:.4f}",
+            f"{center_col * um2px:.4f}",
+        ])
+    return row
+
+
+def export_csv(
+    filepath: str,
+    radius: np.ndarray,
+    circle_fit_par: np.ndarray,
+    *,
+    fps: float | None = None,
+    um2px: float | None = None,
+) -> None:
+    """Export results to CSV format.
+
+    Parameters
+    ----------
+    filepath : str
+        Output file path.
+    radius : (N,) array
+        Fitted radii in pixels (-1 or <=0 for unprocessed frames).
+    circle_fit_par : (N, 2) array
+        Circle centres ``[row, col]``.
+    fps : float or None
+        Frames per second.  If provided, a Time_s column is included.
+    um2px : float or None
+        Micrometres per pixel.  If provided, physical-unit columns are included.
+    """
+    has_fps = fps is not None
+    has_scale = um2px is not None
+    header = _build_header(has_fps=has_fps, has_scale=has_scale)
+
+    with open(filepath, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for i in range(len(radius)):
+            if radius[i] <= 0:
+                continue  # skip unprocessed frames
+            row = _build_row(
+                i, float(radius[i]),
+                float(circle_fit_par[i, 0]),
+                float(circle_fit_par[i, 1]),
+                fps=fps, um2px=um2px,
+            )
+            writer.writerow(row)
+
+
+def export_excel(
+    filepath: str,
+    radius: np.ndarray,
+    circle_fit_par: np.ndarray,
+    *,
+    fps: float | None = None,
+    um2px: float | None = None,
+) -> None:
+    """Export results to Excel (.xlsx) format.
+
+    Parameters
+    ----------
+    filepath : str
+        Output file path.
+    radius : (N,) array
+        Fitted radii in pixels (-1 or <=0 for unprocessed frames).
+    circle_fit_par : (N, 2) array
+        Circle centres ``[row, col]``.
+    fps : float or None
+        Frames per second.  If provided, a Time_s column is included.
+    um2px : float or None
+        Micrometres per pixel.  If provided, physical-unit columns are included.
+    """
+    # Lazy import to avoid hard dependency
+    from openpyxl import Workbook  # type: ignore[import-untyped]
+
+    has_fps = fps is not None
+    has_scale = um2px is not None
+    header = _build_header(has_fps=has_fps, has_scale=has_scale)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Bubble Radius Data"
+    ws.append(header)
+
+    for i in range(len(radius)):
+        if radius[i] <= 0:
+            continue  # skip unprocessed frames
+        row = _build_row(
+            i, float(radius[i]),
+            float(circle_fit_par[i, 0]),
+            float(circle_fit_par[i, 1]),
+            fps=fps, um2px=um2px,
+        )
+        ws.append(row)
+
+    wb.save(filepath)

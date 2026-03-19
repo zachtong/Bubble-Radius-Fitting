@@ -56,6 +56,13 @@ class PostProcessing(QWidget):
         self._fit_len_spin.setValue(11)
         grid.addWidget(self._fit_len_spin, 2, 1, 1, 2)
 
+        # Export format selector
+        grid.addWidget(QLabel("Format:"), 3, 0)
+        self._format_combo = QComboBox()
+        self._format_combo.addItems(["MAT", "CSV", "Excel"])
+        self._format_combo.setCurrentIndex(0)
+        grid.addWidget(self._format_combo, 3, 1, 1, 2)
+
         container = QWidget()
         container.setLayout(grid)
         section.add_widget(container)
@@ -91,6 +98,11 @@ class PostProcessing(QWidget):
 
     def get_fit_length(self) -> int:
         return self._fit_len_spin.value()
+
+    def get_format(self) -> str:
+        """Return selected export format: ``"mat"``, ``"csv"``, or ``"xlsx"``."""
+        mapping = {"MAT": "mat", "CSV": "csv", "Excel": "xlsx"}
+        return mapping.get(self._format_combo.currentText(), "mat")
 
     def set_status(self, text: str, success: bool = True):
         colour = "#22C55E" if success else "#EF4444"
