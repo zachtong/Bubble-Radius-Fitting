@@ -13,6 +13,7 @@ from bubbletrack.controller.display_mixin import (
     refresh_chart,
 )
 from bubbletrack.event_bus import EventBus
+from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import MIN_POINT_DISTANCE_PX
 from bubbletrack.model.undo import UndoStack
@@ -46,11 +47,12 @@ class ManualController(BaseController):
     """Manages manual edge-point selection and fitting."""
 
     def __init__(self, bus: EventBus, get_state, set_state, window,
-                 get_max_radius) -> None:
+                 get_max_radius, cache: ImageCache | None = None) -> None:
         super().__init__(bus, get_state, set_state, window)
         self._manual_points: list[tuple[float, float]] = []
         self._get_max_radius = get_max_radius
         self._undo_stack = UndoStack()
+        self._cache = cache
 
     # -- public handlers -------------------------------------------------- #
 
@@ -138,7 +140,7 @@ class ManualController(BaseController):
         if self.state.circle_xy is not None:
             self.state.circle_xy[idx] = None
 
-        display_frame(self.state, self.w, idx, self._set_state)
+        display_frame(self.state, self.w, idx, self._set_state, self._cache)
 
         # Refresh R-t chart
         if self.state.radius is not None:

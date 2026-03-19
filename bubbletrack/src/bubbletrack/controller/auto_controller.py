@@ -12,6 +12,7 @@ from bubbletrack.controller.base import BaseController
 from bubbletrack.controller.display_mixin import display_frame, refresh_chart
 from bubbletrack.controller.worker import BatchWorker
 from bubbletrack.event_bus import EventBus
+from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import AUTO_DISPLAY_THROTTLE_MS
 from bubbletrack.model.conventions import frame_to_display
@@ -25,12 +26,13 @@ class AutoController(BaseController):
     """Manages automatic batch fitting with a background worker thread."""
 
     def __init__(self, bus: EventBus, get_state, set_state, window,
-                 get_max_radius) -> None:
+                 get_max_radius, cache: ImageCache | None = None) -> None:
         super().__init__(bus, get_state, set_state, window)
         self._worker: BatchWorker | None = None
         self._auto_last_display: float = 0.0
         self._auto_start_time: float = 0.0
         self._get_max_radius = get_max_radius
+        self._cache = cache
 
     # -- public handlers -------------------------------------------------- #
 
@@ -84,7 +86,10 @@ class AutoController(BaseController):
             self.state = self.state.with_results_initialized(len(self.state.images))
         self.w.left_panel.automatic_tab.reset_progress()
         self.w.radius_chart.clear()
-        display_frame(self.state, self.w, self.state.image_no, self._set_state)
+        display_frame(
+            self.state, self.w, self.state.image_no, self._set_state,
+            self._cache,
+        )
         self.w.header.set_status("Cleared", "#22C55E")
 
     # -- internal signal handlers ----------------------------------------- #
@@ -159,7 +164,10 @@ class AutoController(BaseController):
         self.w.left_panel.automatic_tab.set_running(False)
         self.w.header.set_status("Done", "#22C55E")
         # Final full display update
-        display_frame(self.state, self.w, self.state.image_no, self._set_state)
+        display_frame(
+            self.state, self.w, self.state.image_no, self._set_state,
+            self._cache,
+        )
         # Refresh chart with all data
         if self.state.radius is not None:
             frames = np.arange(1, len(self.state.radius) + 1)

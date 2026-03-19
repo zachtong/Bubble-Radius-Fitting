@@ -13,6 +13,7 @@ from bubbletrack.controller.display_mixin import (
     refresh_chart,
 )
 from bubbletrack.event_bus import EventBus
+from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.conventions import clamp_roi
 from bubbletrack.model.detection import detect_bubble
@@ -27,16 +28,20 @@ class PretuneController(BaseController):
     """Manages pre-tune parameters and single-frame fitting."""
 
     def __init__(self, bus: EventBus, get_state, set_state, window,
-                 display_timer, preview_timer, get_max_radius) -> None:
+                 display_timer, preview_timer, get_max_radius,
+                 cache: ImageCache | None = None) -> None:
         super().__init__(bus, get_state, set_state, window)
         self._display_timer = display_timer
         self._preview_timer = preview_timer
         self._get_max_radius = get_max_radius
+        self._cache = cache
 
     # -- public handlers -------------------------------------------------- #
 
     def on_threshold_changed(self, v: float) -> None:
         self._update(img_thr=v)
+        if self._cache is not None:
+            self._cache.invalidate()
         self._display_timer.start()  # debounced
 
     def on_removing_factor_changed(self, v: int) -> None:
@@ -51,6 +56,8 @@ class PretuneController(BaseController):
             closing_radius=p["closing_radius"],
             opening_radius=p["opening_radius"],
         )
+        if self._cache is not None:
+            self._cache.invalidate()
         self._preview_timer.start()  # debounced
 
     def on_edges_changed(self) -> None:
@@ -99,9 +106,14 @@ class PretuneController(BaseController):
             h, w = self.state.cur_img.shape[:2]
             (r0, r1), (c0, c1) = clamp_roi((r0, r1), (c0, c1), h, w)
         self._update(gridx=(r0, r1), gridy=(c0, c1))
+        if self._cache is not None:
+            self._cache.invalidate()
         self.w.left_panel.pretune_tab.set_roi((r0, r1), (c0, c1))
         self.w.header.set_status("ROI selected", "#22C55E")
-        display_frame(self.state, self.w, self.state.image_no, self._set_state)
+        display_frame(
+            self.state, self.w, self.state.image_no, self._set_state,
+            self._cache,
+        )
 
     def on_pretune_fit(self) -> None:
         """Detect + fit circle for the current single frame."""

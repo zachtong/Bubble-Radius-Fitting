@@ -8,6 +8,7 @@ import os
 from bubbletrack.controller.base import BaseController
 from bubbletrack.controller.display_mixin import display_frame
 from bubbletrack.event_bus import EventBus
+from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.conventions import frame_to_display
 from bubbletrack.model.image_io import detect_bit_depth, load_and_normalize, scan_folder
 from bubbletrack.model.state import update_state
@@ -19,9 +20,10 @@ class FileController(BaseController):
     """Handles folder selection, frame navigation, and tab switching."""
 
     def __init__(self, bus: EventBus, get_state, set_state, window,
-                 set_max_radius) -> None:
+                 set_max_radius, cache: ImageCache | None = None) -> None:
         super().__init__(bus, get_state, set_state, window)
         self._set_max_radius = set_max_radius
+        self._cache = cache
 
     # -- public handlers -------------------------------------------------- #
 
@@ -60,11 +62,11 @@ class FileController(BaseController):
         self.w.status_bar.update_format(os.path.splitext(images[0])[1])
         self.w.header.set_status("Ready", "#22C55E")
 
-        display_frame(self.state, self.w, 0, self._set_state)
+        display_frame(self.state, self.w, 0, self._set_state, self._cache)
 
     def on_frame_changed(self, idx: int) -> None:
         self._update(image_no=idx)
-        display_frame(self.state, self.w, idx, self._set_state)
+        display_frame(self.state, self.w, idx, self._set_state, self._cache)
         # Sync tab frame spinboxes
         self.w.left_panel.pretune_tab.set_frame_value(idx)
         self.w.left_panel.manual_tab.set_frame_value(idx)
@@ -77,7 +79,7 @@ class FileController(BaseController):
         self.w.frame_scrubber.set_value(idx)
         self.w.left_panel.pretune_tab.set_frame_value(idx)
         self.w.left_panel.manual_tab.set_frame_value(idx)
-        display_frame(self.state, self.w, idx, self._set_state)
+        display_frame(self.state, self.w, idx, self._set_state, self._cache)
 
     def on_tab_changed(self, idx: int) -> None:
         """Tab bar switched — exit interactive modes, update status."""

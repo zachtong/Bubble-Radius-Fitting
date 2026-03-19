@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.conventions import frame_to_display
 from bubbletrack.model.detection import detect_bubble
@@ -18,7 +19,21 @@ from bubbletrack.model.state import AppState, update_state
 from bubbletrack.ui.image_compare import CompareMode, create_overlay, create_wipe
 
 
-def display_frame(state: AppState, window, idx: int, set_state) -> None:
+def _build_cache_key(filepath: str, state: AppState) -> str:
+    """Build a cache key from filepath and processing parameters."""
+    return (
+        f"{filepath}:{state.img_thr}:{state.gridx}:{state.gridy}"
+        f":{state.gaussian_sigma}:{state.clahe_clip}"
+    )
+
+
+def display_frame(
+    state: AppState,
+    window,
+    idx: int,
+    set_state,
+    cache: ImageCache | None = None,
+) -> None:
     """Load, process and display frame *idx* on both image panels.
 
     Parameters
@@ -31,18 +46,32 @@ def display_frame(state: AppState, window, idx: int, set_state) -> None:
         0-based frame index to display.
     set_state : callable
         Callback to persist the updated state (with cur_img etc.).
+    cache : ImageCache | None
+        Optional LRU cache for loaded images.
     """
     if not state.images:
         return
     try:
-        cur_img, _, _, binary_roi = load_and_normalize(
-            state.images[idx],
-            state.img_thr,
-            state.gridx,
-            state.gridy,
-            gaussian_sigma=state.gaussian_sigma,
-            clahe_clip=state.clahe_clip,
-        )
+        # Check cache before loading from disk
+        cache_key = _build_cache_key(state.images[idx], state)
+        cached = cache.get(cache_key) if cache is not None else None
+
+        if cached is not None:
+            cur_img, _, _, binary_roi = cached
+        else:
+            cur_img, _, _, binary_roi = load_and_normalize(
+                state.images[idx],
+                state.img_thr,
+                state.gridx,
+                state.gridy,
+                gaussian_sigma=state.gaussian_sigma,
+                clahe_clip=state.clahe_clip,
+            )
+            if cache is not None:
+                cache.put(
+                    cache_key,
+                    (cur_img, None, None, binary_roi),
+                )
         state = update_state(
             state, cur_img=cur_img, cur_img_binary_roi=binary_roi,
         )

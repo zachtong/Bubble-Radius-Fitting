@@ -11,6 +11,7 @@ from bubbletrack.controller.file_controller import FileController
 from bubbletrack.controller.manual_controller import ManualController
 from bubbletrack.controller.pretune_controller import PretuneController
 from bubbletrack.event_bus import EventBus
+from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.constants import DISPLAY_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS
 from bubbletrack.model.state import AppState
 from bubbletrack.ui.shortcuts import setup_shortcuts
@@ -30,6 +31,9 @@ class AppController:
         self._state = AppState()
         self._max_radius: float = float("inf")
 
+        # LRU image cache (200 MB limit)
+        self._image_cache = ImageCache()
+
         # Event bus for decoupled inter-controller communication
         self.bus = EventBus()
 
@@ -40,6 +44,7 @@ class AppController:
         self._display_timer.timeout.connect(
             lambda: display_frame(
                 self._state, self.w, self._state.image_no, self._set_state,
+                self._image_cache,
             )
         )
 
@@ -52,16 +57,20 @@ class AppController:
 
         self.file_ctrl = FileController(
             self.bus, gs, ss, self.w, self._set_max_radius,
+            self._image_cache,
         )
         self.pretune_ctrl = PretuneController(
             self.bus, gs, ss, self.w,
             self._display_timer, self._preview_timer, self._get_max_radius,
+            self._image_cache,
         )
         self.manual_ctrl = ManualController(
             self.bus, gs, ss, self.w, self._get_max_radius,
+            self._image_cache,
         )
         self.auto_ctrl = AutoController(
             self.bus, gs, ss, self.w, self._get_max_radius,
+            self._image_cache,
         )
         self.export_ctrl = ExportController(self.bus, gs, ss, self.w)
 
