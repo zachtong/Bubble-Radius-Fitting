@@ -1,6 +1,7 @@
 """Tests for image I/O utilities."""
 
 import os
+import sys
 import tempfile
 
 import cv2
@@ -54,6 +55,34 @@ class TestScanFolder:
         cv2.imwrite(str(tmp_path / "b.tiff"), np.zeros((10, 10), np.uint8))
         paths = scan_folder(str(tmp_path))
         assert all(p.endswith(".tiff") for p in paths)
+
+    def test_scan_nonexistent_dir_returns_empty(self):
+        """Passing a path that doesn't exist returns an empty list."""
+        result = scan_folder("/this/path/does/not/exist/at/all")
+        assert result == []
+
+    def test_scan_file_not_dir_returns_empty(self, tmp_path):
+        """Passing a file path instead of a directory returns an empty list."""
+        f = tmp_path / "some_file.txt"
+        f.write_text("hello")
+        result = scan_folder(str(f))
+        assert result == []
+
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Symlink creation requires elevated privileges on Windows",
+    )
+    def test_scan_skips_symlinks(self, tmp_path):
+        """Symlinked image files are skipped; only real files are returned."""
+        real_img = tmp_path / "real.png"
+        cv2.imwrite(str(real_img), np.zeros((10, 10), np.uint8))
+        link_img = tmp_path / "link.png"
+        link_img.symlink_to(real_img)
+
+        paths = scan_folder(str(tmp_path))
+        basenames = [os.path.basename(p) for p in paths]
+        assert "real.png" in basenames
+        assert "link.png" not in basenames
 
 
 class TestDetectBitDepth:

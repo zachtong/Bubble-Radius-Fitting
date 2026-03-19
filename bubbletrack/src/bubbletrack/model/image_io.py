@@ -36,16 +36,26 @@ def scan_folder(folder: str) -> list[str]:
 
     Scans for the first extension group that has files, in priority order
     (tiff > tif > png > jpg > bmp).  Files are natural-sorted by name.
+
+    Validates that *folder* is an existing directory and skips symlinked
+    files during iteration to avoid following potentially unsafe links.
     """
-    folder = str(folder)
+    p = Path(folder).resolve()
+    if not p.is_dir():
+        logger.warning("Not a directory: %s", folder)
+        return []
+
+    folder_str = str(p)
     for ext in _EXTENSIONS:
-        files = [
-            os.path.join(folder, f)
-            for f in os.listdir(folder)
-            if f.lower().endswith(ext)
-        ]
+        files = []
+        for f in p.iterdir():
+            if f.is_symlink():
+                logger.warning("Skipping symlink: %s", f)
+                continue
+            if f.name.lower().endswith(ext):
+                files.append(str(f))
         if files:
-            files.sort(key=lambda p: _natural_sort_key(os.path.basename(p)))
+            files.sort(key=lambda fp: _natural_sort_key(os.path.basename(fp)))
             return files
     return []
 
