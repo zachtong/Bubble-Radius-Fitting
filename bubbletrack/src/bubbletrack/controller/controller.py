@@ -10,6 +10,11 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 from bubbletrack.model.circle_fit import circle_fit_taubin
+from bubbletrack.model.constants import (
+    AUTO_DISPLAY_THROTTLE_MS,
+    DISPLAY_DEBOUNCE_MS,
+    PREVIEW_DEBOUNCE_MS,
+)
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.export import export_r_data, export_rof_t_data
 from bubbletrack.model.image_io import (
@@ -35,17 +40,17 @@ class AppController:
         self._manual_points: list[tuple[float, float]] = []
         self._max_radius: float = float("inf")  # image long side; set on folder load
 
-        # Debounce timers for slider-driven updates (50 ms)
+        # Debounce timers for slider-driven updates
         self._display_timer = QTimer()
         self._display_timer.setSingleShot(True)
-        self._display_timer.setInterval(50)
+        self._display_timer.setInterval(DISPLAY_DEBOUNCE_MS)
         self._display_timer.timeout.connect(
             lambda: self._display_frame(self.state.image_no)
         )
 
         self._preview_timer = QTimer()
         self._preview_timer.setSingleShot(True)
-        self._preview_timer.setInterval(50)
+        self._preview_timer.setInterval(PREVIEW_DEBOUNCE_MS)
         self._preview_timer.timeout.connect(self._preview_detection)
 
         self._connect_signals()
@@ -480,10 +485,10 @@ class AppController:
             self.state.circle_fit_par[idx] = [rc, cc]
             self.state.circle_xy[idx] = edge_xy
 
-        # Throttle display updates to ~150ms intervals so the UI thread
-        # can process user events (e.g. stop button clicks)
+        # Throttle display updates so the UI thread can process user events
+        # (e.g. stop button clicks)
         now = time.monotonic()
-        if now - self._auto_last_display < 0.15:
+        if now - self._auto_last_display < AUTO_DISPLAY_THROTTLE_MS / 1000.0:
             return
         self._auto_last_display = now
 

@@ -11,6 +11,12 @@ import warnings
 
 import numpy as np
 
+from bubbletrack.model.constants import (
+    TAUBIN_EPSILON,
+    TAUBIN_MAX_ITER,
+    TAUBIN_MIN_POINTS,
+)
+
 
 def circle_fit_taubin(xy: np.ndarray) -> tuple[float, float, float]:
     """Fit a circle using the Taubin algebraic method.
@@ -27,7 +33,7 @@ def circle_fit_taubin(xy: np.ndarray) -> tuple[float, float, float]:
     """
     nan3 = (np.nan, np.nan, np.nan)
 
-    if xy.shape[0] < 3:
+    if xy.shape[0] < TAUBIN_MIN_POINTS:
         return nan3
 
     centroid = xy.mean(axis=0)
@@ -57,8 +63,8 @@ def circle_fit_taubin(xy: np.ndarray) -> tuple[float, float, float]:
     # Newton's method starting at x = 0
     xnew = 0.0
     ynew = 1e20
-    epsilon = 1e-12
-    iter_max = 20
+    epsilon = TAUBIN_EPSILON
+    iter_max = TAUBIN_MAX_ITER
     converged = False
 
     for _ in range(iter_max):

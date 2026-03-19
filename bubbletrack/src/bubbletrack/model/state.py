@@ -7,6 +7,13 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from bubbletrack.model.constants import (
+    DEFAULT_FPS,
+    DEFAULT_REMOVING_FACTOR,
+    DEFAULT_RMAX_FIT_LENGTH,
+    DEFAULT_UM2PX,
+)
+
 
 @dataclass
 class AppState:
@@ -25,7 +32,7 @@ class AppState:
     gridy: tuple[int, int] = (1, 1)
 
     # Removing factor slider 0-100
-    removing_factor: int = 90
+    removing_factor: int = DEFAULT_REMOVING_FACTOR
 
     # Bubble-crosses-edge flags [Top, Right, Down, Left]
     bubble_cross_edges: list[bool] = field(default_factory=lambda: [False] * 4)
@@ -46,9 +53,9 @@ class AppState:
 
     # Display parameters
     img_grayscale_max: int = 65535
-    um2px: float = 3.2
-    fps: float = 1_000_000.0
-    rmax_fit_length: int = 11
+    um2px: float = DEFAULT_UM2PX
+    fps: float = DEFAULT_FPS
+    rmax_fit_length: int = DEFAULT_RMAX_FIT_LENGTH
 
     # Export
     save_path: str = ""

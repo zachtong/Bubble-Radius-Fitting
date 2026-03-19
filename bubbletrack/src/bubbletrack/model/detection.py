@@ -6,11 +6,11 @@ import numpy as np
 from scipy import ndimage
 from skimage import measure, morphology
 
-
-# --- Constants matching MATLAB implementation ---
-MAX_AXIS_RATIO = 2.2
-MAX_ECCENTRICITY = 1.6
-MIN_HOLE_AREA = 40
+from bubbletrack.model.constants import (
+    MAX_AXIS_RATIO,
+    MAX_ECCENTRICITY,
+    MIN_HOLE_AREA,
+)
 
 
 def expand_binary_image(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from bubbletrack.model.constants import RF_MAX_AREA_FRACTION, RF_MIN_AREA
+
 
 def compute_removing_factor(
     slider_value: float,
@@ -26,8 +28,8 @@ def compute_removing_factor(
     """
     roi_area = (gridx[1] - gridx[0]) * (gridy[1] - gridy[0])
 
-    min_area = 10
-    max_area = max(round(roi_area * 0.5), min_area + 1)
+    min_area = RF_MIN_AREA
+    max_area = max(round(roi_area * RF_MAX_AREA_FRACTION), min_area + 1)
 
     if slider_value <= 0:
         return min_area
