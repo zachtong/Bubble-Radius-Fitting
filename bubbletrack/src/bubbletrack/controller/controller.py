@@ -13,6 +13,7 @@ from bubbletrack.controller.pretune_controller import PretuneController
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.constants import DISPLAY_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS
 from bubbletrack.model.state import AppState
+from bubbletrack.ui.shortcuts import setup_shortcuts
 
 
 class AppController:
@@ -71,6 +72,19 @@ class AppController:
         self.bus.subscribe("tab_changed", lambda idx: self.manual_ctrl.clear_points())
 
         self._connect_signals()
+
+        # Keyboard shortcuts
+        self._shortcuts = setup_shortcuts(self.w, {
+            "frame_prev": lambda: self.file_ctrl.on_frame_changed(
+                max(0, self._state.image_no - 1),
+            ),
+            "frame_next": lambda: self.file_ctrl.on_frame_changed(
+                min(self._state.total_frames - 1, self._state.image_no + 1),
+            ),
+            "zoom_in": self.w.original_panel._zoom_in,
+            "zoom_out": self.w.original_panel._zoom_out,
+            "zoom_reset": self.w.original_panel._zoom_reset,
+        })
 
     # ------------------------------------------------------------------ #
     #  State accessors (shared with sub-controllers)
