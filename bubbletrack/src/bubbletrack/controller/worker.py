@@ -1,24 +1,63 @@
-"""Background worker thread for batch bubble detection + fitting."""
+"""Background worker thread for batch bubble detection + fitting.
+
+Uses ``concurrent.futures.ProcessPoolExecutor`` to distribute frame
+processing across multiple CPU cores.  The module-level function
+``_process_single_frame`` is picklable and runs in worker processes.
+"""
 
 from __future__ import annotations
 
 import logging
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import numpy as np
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from bubbletrack.model.circle_fit import circle_fit_taubin
-from bubbletrack.model.conventions import frame_to_display
-from bubbletrack.model.detection import detect_bubble
-from bubbletrack.model.image_io import load_and_normalize
-from bubbletrack.model.removing_factor import compute_removing_factor
-
 logger = logging.getLogger(__name__)
 
 
+def _process_single_frame(args: tuple):
+    """Process a single frame.  Must be module-level for multiprocessing pickle."""
+    (
+        idx, filepath, sensitivity, gridx, gridy,
+        edges, rf_slider, removing_obj_radius,
+        gaussian_sigma, clahe_clip,
+        closing_radius, opening_radius, max_radius,
+    ) = args
+
+    # Import inside the function — each worker process needs its own imports
+    from bubbletrack.model.circle_fit import circle_fit_taubin
+    from bubbletrack.model.detection import detect_bubble
+    from bubbletrack.model.image_io import load_and_normalize
+    from bubbletrack.model.removing_factor import compute_removing_factor
+
+    _, _, _, binary_roi = load_and_normalize(
+        filepath, sensitivity, gridx, gridy,
+        gaussian_sigma=gaussian_sigma, clahe_clip=clahe_clip,
+    )
+    rf = compute_removing_factor(rf_slider, gridx, gridy)
+    processed, edge_xy = detect_bubble(
+        binary_roi, list(edges), rf, gridx, gridy, removing_obj_radius,
+        opening_radius=opening_radius, closing_radius=closing_radius,
+    )
+
+    radius = -1.0
+    if edge_xy.shape[0] >= 3:
+        _, _, r = circle_fit_taubin(edge_xy)
+        if not (np.isnan(r) or r > max_radius):
+            radius = float(r)
+        else:
+            edge_xy = np.empty((0, 2))
+    else:
+        edge_xy = np.empty((0, 2))
+
+    return idx, radius, edge_xy, processed
+
+
 class BatchWorker(QThread):
-    """Process a range of frames in the background.
+    """Process a range of frames in the background using multiple processes.
 
     Signals
     -------
@@ -73,42 +112,58 @@ class BatchWorker(QThread):
 
     def run(self):
         total = self._end - self._start + 1
-        rf = compute_removing_factor(self._rf_slider, self._gridx, self._gridy)
-        logger.info("Batch processing frames %d-%d", self._start, self._end)
+        n_workers = min(4, os.cpu_count() or 1)
+        logger.info(
+            "Batch processing frames %d-%d with %d workers",
+            self._start, self._end, n_workers,
+        )
 
-        for count, i in enumerate(range(self._start, self._end + 1)):
-            if self._stop:
-                logger.warning("Batch stopped by user at frame %d", i)
-                break
-            try:
-                _, _, _, binary_roi = load_and_normalize(
-                    self._images[i], self._sensitivity,
-                    self._gridx, self._gridy,
-                    gaussian_sigma=self._gaussian_sigma,
-                    clahe_clip=self._clahe_clip,
-                )
-                processed, edge_xy = detect_bubble(
-                    binary_roi, self._edges, rf,
-                    self._gridx, self._gridy,
-                    self._obj_radius,
-                    opening_radius=self._opening_radius,
-                    closing_radius=self._closing_radius,
-                )
-                if edge_xy.shape[0] >= 3:
-                    rc, cc, radius = circle_fit_taubin(edge_xy)
-                    if np.isnan(radius) or radius > self._max_radius:
-                        radius = -1.0
-                        edge_xy = np.empty((0, 2))
-                else:
-                    radius = -1.0
-                    edge_xy = np.empty((0, 2))
+        # Build picklable args for all frames (tuples, not lists for edges)
+        all_args = []
+        for i in range(self._start, self._end + 1):
+            all_args.append((
+                i,
+                self._images[i],
+                self._sensitivity,
+                self._gridx,
+                self._gridy,
+                tuple(self._edges),
+                self._rf_slider,
+                self._obj_radius,
+                self._gaussian_sigma,
+                self._clahe_clip,
+                self._closing_radius,
+                self._opening_radius,
+                self._max_radius,
+            ))
 
-                self.frame_done.emit(i, float(radius), edge_xy, processed)
-            except Exception as exc:
-                logger.error("Frame %d failed: %s", i, exc)
-                self.frame_error.emit(i, str(exc))
-                self.frame_done.emit(i, -1.0, np.empty((0, 2)), None)
+        done_count = 0
+        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            futures = {
+                pool.submit(_process_single_frame, args): args[0]
+                for args in all_args
+            }
 
-            self.progress.emit(count + 1, total)
+            for fut in as_completed(futures):
+                if self._stop:
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    logger.warning("Batch stopped by user")
+                    break
+
+                idx = futures[fut]
+                try:
+                    result = fut.result()
+                    self.frame_done.emit(
+                        result[0], result[1], result[2], result[3],
+                    )
+                except Exception as exc:
+                    logger.error("Frame %d failed: %s", idx, exc)
+                    self.frame_error.emit(idx, str(exc))
+                    self.frame_done.emit(
+                        idx, -1.0, np.empty((0, 2)), None,
+                    )
+
+                done_count += 1
+                self.progress.emit(done_count, total)
 
         self.finished.emit()
