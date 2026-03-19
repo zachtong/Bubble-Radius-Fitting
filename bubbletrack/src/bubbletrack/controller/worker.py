@@ -30,6 +30,7 @@ class BatchWorker(QThread):
 
     progress = pyqtSignal(int, int)
     frame_done = pyqtSignal(int, float, object, object)
+    frame_error = pyqtSignal(int, str)  # (frame_idx, error_message)
     finished = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -104,8 +105,8 @@ class BatchWorker(QThread):
 
                 self.frame_done.emit(i, float(radius), edge_xy, processed)
             except Exception as exc:
-                logger.error("Batch error: %s", exc)
-                self.error.emit(f"Frame {frame_to_display(i)}: {exc}")
+                logger.error("Frame %d failed: %s", i, exc)
+                self.frame_error.emit(i, str(exc))
                 self.frame_done.emit(i, -1.0, np.empty((0, 2)), None)
 
             self.progress.emit(count + 1, total)
