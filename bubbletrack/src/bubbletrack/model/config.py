@@ -79,3 +79,34 @@ def load_config() -> dict[str, Any]:
     except (json.JSONDecodeError, OSError) as exc:
         logger.warning("Failed to load config: %s", exc)
         return {}
+
+
+# ------------------------------------------------------------------ #
+#  Onboarding flag (meta-config, not a persisted AppState parameter)
+# ------------------------------------------------------------------ #
+
+def _load_raw_config() -> dict[str, Any]:
+    """Load the full raw config dict (including meta-keys like onboarding_done)."""
+    if not CONFIG_FILE.exists():
+        return {}
+    try:
+        raw = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def is_onboarding_done() -> bool:
+    """Return True if the user has dismissed the welcome dialog."""
+    return bool(_load_raw_config().get("onboarding_done", False))
+
+
+def set_onboarding_done() -> None:
+    """Persist the onboarding_done flag so the welcome dialog is not shown again."""
+    config = _load_raw_config()
+    config["onboarding_done"] = True
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding="utf-8")
+    except (OSError, TypeError, ValueError) as exc:
+        logger.warning("Failed to save onboarding flag: %s", exc)

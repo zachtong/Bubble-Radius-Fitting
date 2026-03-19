@@ -8,8 +8,10 @@ import pytest
 
 from bubbletrack.model.config import (
     PERSIST_KEYS,
+    is_onboarding_done,
     load_config,
     save_config,
+    set_onboarding_done,
 )
 from bubbletrack.model.state import AppState, update_state
 
@@ -143,3 +145,28 @@ class TestLoadConfigApplyToState:
         # Fields not in PERSIST_KEYS should remain at defaults
         assert restored.image_no == 0
         assert restored.folder_path == ""
+
+
+class TestOnboarding:
+    """Verify onboarding flag helpers."""
+
+    def test_default_is_not_done(self):
+        assert is_onboarding_done() is False
+
+    def test_set_and_read(self):
+        set_onboarding_done()
+        assert is_onboarding_done() is True
+
+    def test_does_not_corrupt_persist_keys(self, tmp_path):
+        """Setting onboarding_done should not interfere with persisted params."""
+        state = update_state(AppState(), img_thr=0.9)
+        save_config(state)
+        set_onboarding_done()
+        loaded = load_config()
+        assert loaded["img_thr"] == 0.9
+        assert is_onboarding_done() is True
+
+    def test_survives_missing_config_dir(self):
+        """set_onboarding_done should create the config dir if needed."""
+        set_onboarding_done()
+        assert is_onboarding_done() is True

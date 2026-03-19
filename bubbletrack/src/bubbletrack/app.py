@@ -11,8 +11,9 @@ from PyQt6.QtWidgets import QApplication
 
 from bubbletrack.controller.controller import AppController
 from bubbletrack.logging_config import setup_logging
-from bubbletrack.model.config import save_config
+from bubbletrack.model.config import is_onboarding_done, save_config, set_onboarding_done
 from bubbletrack.ui.main_window import MainWindow
+from bubbletrack.ui.welcome_dialog import WelcomeDialog
 
 
 def main():
@@ -39,6 +40,13 @@ def main():
 
     # Auto-save user parameters on application exit
     app.aboutToQuit.connect(lambda: save_config(controller._get_state()))
+
+    # Show onboarding dialog on first launch
+    if not is_onboarding_done():
+        dlg = WelcomeDialog(window)
+        dlg.exec()
+        if dlg.dont_show_again:
+            set_onboarding_done()
 
     window.show()
     sys.exit(app.exec())
