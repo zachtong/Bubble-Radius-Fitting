@@ -98,6 +98,30 @@ class ImagePanel(QWidget):
         self._scene.setSceneRect(QRectF(0, 0, w, h))
         self._view.fitInView(self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
+    def set_image_rgb(self, img: np.ndarray):
+        """Display an RGB image (H, W, 3) uint8.
+
+        Used by overlay / wipe comparison modes that produce colour
+        composites from the original grayscale and binary images.
+        """
+        if img.ndim != 3 or img.shape[2] != 3:
+            raise ValueError("set_image_rgb expects an (H, W, 3) array")
+        img8 = img.astype(np.uint8)
+        h, w = img8.shape[:2]
+        bytes_per_line = 3 * w
+        qimg = QImage(
+            img8.data.tobytes(), w, h, bytes_per_line,
+            QImage.Format.Format_RGB888,
+        )
+        pixmap = QPixmap.fromImage(qimg)
+
+        self.clear_overlays()
+        if self._pixmap_item is not None:
+            self._scene.removeItem(self._pixmap_item)
+        self._pixmap_item = self._scene.addPixmap(pixmap)
+        self._scene.setSceneRect(QRectF(0, 0, w, h))
+        self._view.fitInView(self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
     def draw_circle(self, row_c: float, col_c: float, radius: float,
                     colour: str = "#3B82F6", width: float = 2.0):
         """Draw a circle overlay. Coordinates are (row, col) = (y, x)."""

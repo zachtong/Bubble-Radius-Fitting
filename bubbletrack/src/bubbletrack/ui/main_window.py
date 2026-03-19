@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
 )
 
 from bubbletrack.ui.header_bar import HeaderBar
+from bubbletrack.ui.image_compare import CompareMode, CompareToolbar
 from bubbletrack.ui.status_bar import StatusBar
 from bubbletrack.ui.left_panel import LeftPanel
 from bubbletrack.ui.image_panel import ImagePanel
@@ -58,6 +59,11 @@ class MainWindow(QMainWindow):
         right.setContentsMargins(12, 12, 12, 8)
         right.setSpacing(8)
 
+        # Compare-mode toolbar (Side by Side | Overlay | Wipe)
+        self.compare_toolbar = CompareToolbar()
+        self.compare_toolbar.mode_changed.connect(self._on_compare_mode)
+        right.addWidget(self.compare_toolbar)
+
         # Image viewers row
         images_row = QHBoxLayout()
         images_row.setSpacing(8)
@@ -81,6 +87,22 @@ class MainWindow(QMainWindow):
         # Status bar
         self.status_bar = StatusBar()
         root.addWidget(self.status_bar)
+
+    # -- Compare mode helpers --
+
+    @property
+    def compare_mode(self) -> CompareMode:
+        """Return the currently active image comparison mode."""
+        return self.compare_toolbar.current_mode
+
+    def _on_compare_mode(self, mode_value: str) -> None:
+        """Handle compare-mode toolbar clicks."""
+        mode = CompareMode(mode_value)
+        if mode is CompareMode.SIDE_BY_SIDE:
+            self.binary_panel.setVisible(True)
+        else:
+            # Overlay & Wipe show a single combined image
+            self.binary_panel.setVisible(False)
 
     def _toggle_sidebar(self):
         visible = self.left_panel.isVisible()

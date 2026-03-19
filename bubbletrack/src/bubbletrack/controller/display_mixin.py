@@ -15,6 +15,7 @@ from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.image_io import load_and_normalize
 from bubbletrack.model.removing_factor import compute_removing_factor
 from bubbletrack.model.state import AppState, update_state
+from bubbletrack.ui.image_compare import CompareMode, create_overlay, create_wipe
 
 
 def display_frame(state: AppState, window, idx: int, set_state) -> None:
@@ -47,10 +48,7 @@ def display_frame(state: AppState, window, idx: int, set_state) -> None:
         )
         set_state(state)
 
-        window.original_panel.set_image(cur_img)
-
-        # For fitted frames, show the actual detection result;
-        # for unfitted frames, show the raw threshold.
+        # Determine which binary image to show
         if state.radius is not None and state.radius[idx] > 0:
             rf = compute_removing_factor(
                 state.removing_factor,
@@ -63,11 +61,25 @@ def display_frame(state: AppState, window, idx: int, set_state) -> None:
                 opening_radius=state.opening_radius,
                 closing_radius=state.closing_radius,
             )
-            window.binary_panel.set_image(processed)
+            bin_display = processed
         else:
-            window.binary_panel.set_image(~binary_roi)
+            bin_display = ~binary_roi
 
-        # Draw ROI rectangle on original
+        # Render according to compare mode
+        mode = window.compare_mode
+
+        if mode is CompareMode.OVERLAY:
+            composite = create_overlay(cur_img, bin_display)
+            window.original_panel.set_image_rgb(composite)
+        elif mode is CompareMode.WIPE:
+            composite = create_wipe(cur_img, bin_display)
+            window.original_panel.set_image_rgb(composite)
+        else:
+            # Side-by-side (default)
+            window.original_panel.set_image(cur_img)
+            window.binary_panel.set_image(bin_display)
+
+        # Draw ROI rectangle on original panel
         window.original_panel.draw_roi_rect(state.gridx, state.gridy)
 
         # Draw existing circle fit if available
