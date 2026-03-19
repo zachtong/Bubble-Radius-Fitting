@@ -4,22 +4,29 @@ from __future__ import annotations
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QMenu, QVBoxLayout, QWidget
 
 
 class RadiusChart(QWidget):
     """Scatter plot of bubble radius vs frame number.
 
     Uses pyqtgraph for 10-100x faster updates compared to Matplotlib.
-    Supports click-to-jump, zoom, and pan interactivity.
+    Supports click-to-jump, zoom, pan, and right-click context menu.
 
     Signals:
         point_clicked(int): Emitted when user clicks a data point,
                            with the 0-based frame index.
+        delete_requested(int): Emitted when user requests deletion of a point,
+                              with the 0-based frame index.
+        refit_requested(int): Emitted when user requests refitting a frame,
+                             with the 0-based frame index.
     """
 
     point_clicked = pyqtSignal(int)
+    delete_requested = pyqtSignal(int)
+    refit_requested = pyqtSignal(int)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -67,6 +74,9 @@ class RadiusChart(QWidget):
         self._frames: np.ndarray = np.array([])
         self._radii: np.ndarray = np.array([])
 
+        # Right-click context menu on scatter plot
+        self._setup_context_menu()
+
     def plot_all(self, frames: np.ndarray, radii: np.ndarray) -> None:
         """Clear and replot all valid data points (radius > 0)."""
         mask = radii > 0
@@ -113,6 +123,67 @@ class RadiusChart(QWidget):
         self._anomaly_scatter.setData([], [])
         self._frames = np.array([])
         self._radii = np.array([])
+
+    def _setup_context_menu(self) -> None:
+        """Connect right-click detection on the scatter plot scene."""
+        self._plot.scene().sigMouseClicked.connect(self._on_mouse_clicked)
+
+    def _find_nearest_point(self, x: float, y: float) -> int | None:
+        """Find nearest data point to (x, y) in view coords. Return 0-based idx or None."""
+        if len(self._frames) == 0:
+            return None
+
+        vb = self._plot.plotItem.vb
+        view_range = vb.viewRange()
+        x_range = view_range[0][1] - view_range[0][0]
+        y_range = view_range[1][1] - view_range[1][0]
+
+        if x_range <= 0 or y_range <= 0:
+            return None
+
+        # Normalize distances by axis range for uniform click tolerance
+        dx = (self._frames - x) / x_range
+        dy = (self._radii - y) / y_range
+        dists = dx ** 2 + dy ** 2
+
+        nearest_idx = int(np.argmin(dists))
+        # Threshold: 1% of the plot area (in normalized coords)
+        if dists[nearest_idx] > 0.01 ** 2 + 0.01 ** 2:
+            return None
+
+        # Convert from filtered index to 0-based frame index
+        frame_num = int(self._frames[nearest_idx])  # 1-based
+        return frame_num - 1  # 0-based
+
+    def _on_mouse_clicked(self, event) -> None:
+        """Handle mouse click on the plot scene — show context menu on right-click."""
+        if event.button() != Qt.MouseButton.RightButton:
+            return
+
+        pos = self._plot.plotItem.vb.mapSceneToView(event.scenePos())
+        frame_idx = self._find_nearest_point(pos.x(), pos.y())
+        if frame_idx is None:
+            return
+
+        # Build context menu
+        menu = QMenu(self)
+        frame_label = frame_idx + 1  # display as 1-based
+
+        delete_action = QAction(f"Delete point (Frame {frame_label})", self)
+        delete_action.triggered.connect(
+            lambda _checked=False, i=frame_idx: self.delete_requested.emit(i),
+        )
+
+        refit_action = QAction(f"Refit frame {frame_label}", self)
+        refit_action.triggered.connect(
+            lambda _checked=False, i=frame_idx: self.refit_requested.emit(i),
+        )
+
+        menu.addAction(delete_action)
+        menu.addAction(refit_action)
+
+        # Show at cursor position
+        menu.exec(event.screenPos().toPoint())
 
     def _on_scatter_clicked(self, plot, points, ev=None) -> None:
         """Handle click on scatter point — emit 0-based frame index.

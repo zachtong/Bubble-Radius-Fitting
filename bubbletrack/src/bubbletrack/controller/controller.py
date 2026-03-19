@@ -5,19 +5,25 @@ from __future__ import annotations
 import logging
 import os
 
+import numpy as np
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QFileDialog
 
 from bubbletrack.controller.auto_controller import AutoController
-from bubbletrack.controller.display_mixin import display_frame
+from bubbletrack.controller.display_mixin import display_frame, refresh_chart
 from bubbletrack.controller.export_controller import ExportController
 from bubbletrack.controller.file_controller import FileController
 from bubbletrack.controller.manual_controller import ManualController
 from bubbletrack.controller.pretune_controller import PretuneController
 from bubbletrack.event_bus import EventBus
+from bubbletrack.model.anomaly import detect_anomalies
 from bubbletrack.model.cache import ImageCache
+from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import DISPLAY_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS
 from bubbletrack.model.config import load_config
+from bubbletrack.model.detection import detect_bubble
+from bubbletrack.model.image_io import load_and_normalize
+from bubbletrack.model.removing_factor import compute_removing_factor
 from bubbletrack.model.session import save_session, load_session
 from bubbletrack.model.state import AppState, update_state
 from bubbletrack.ui.shortcuts import setup_shortcuts
@@ -173,9 +179,123 @@ class AppController:
         # R-t chart click-to-jump
         self.w.radius_chart.point_clicked.connect(self.file_ctrl.on_frame_changed)
 
+        # R-t chart right-click: delete / refit
+        self.w.radius_chart.delete_requested.connect(self._on_delete_point)
+        self.w.radius_chart.refit_requested.connect(self._on_refit_point)
+
         # Session save/load (menubar File menu)
         self.w.save_session_requested.connect(self._on_save_session)
         self.w.load_session_requested.connect(self._on_load_session)
+
+    # ------------------------------------------------------------------ #
+    #  Result editing (delete / refit single frame)
+    # ------------------------------------------------------------------ #
+
+    def _on_delete_point(self, idx: int) -> None:
+        """Delete the fitted result at frame *idx* (0-based)."""
+        if self._state.radius is None or idx < 0 or idx >= len(self._state.radius):
+            return
+
+        self._state.radius[idx] = -1.0
+        self._state.circle_fit_par[idx] = [np.nan, np.nan]
+        if self._state.circle_xy is not None:
+            self._state.circle_xy[idx] = None
+
+        self._refresh_chart_and_anomalies()
+
+        # Refresh display if we are viewing the deleted frame
+        if self._state.image_no == idx:
+            display_frame(
+                self._state, self.w, idx, self._set_state, self._image_cache,
+            )
+
+        self.w.header.set_status(f"Deleted result for frame {idx + 1}", "#22C55E")
+        logger.info("Deleted result for frame %d", idx + 1)
+
+    def _on_refit_point(self, idx: int) -> None:
+        """Re-run detection + circle fitting for a single frame *idx* (0-based)."""
+        if not self._state.images or idx < 0 or idx >= len(self._state.images):
+            return
+        if self._state.radius is None:
+            return
+
+        try:
+            _, _, _, binary_roi = load_and_normalize(
+                self._state.images[idx],
+                self._state.img_thr,
+                self._state.gridx,
+                self._state.gridy,
+                gaussian_sigma=self._state.gaussian_sigma,
+                clahe_clip=self._state.clahe_clip,
+            )
+
+            rf = compute_removing_factor(
+                self._state.removing_factor,
+                self._state.gridx,
+                self._state.gridy,
+            )
+
+            _, edge_xy = detect_bubble(
+                binary_roi,
+                list(self._state.bubble_cross_edges),
+                rf,
+                self._state.gridx,
+                self._state.gridy,
+                self._state.removing_obj_radius,
+                opening_radius=self._state.opening_radius,
+                closing_radius=self._state.closing_radius,
+            )
+
+            if edge_xy.shape[0] >= 3:
+                rc, cc, r = circle_fit_taubin(edge_xy)
+                # Reject fits that exceed max radius
+                if np.isfinite(r) and r > 0 and r <= self._max_radius:
+                    self._state.radius[idx] = r
+                    self._state.circle_fit_par[idx] = [rc, cc]
+                    if self._state.circle_xy is not None:
+                        self._state.circle_xy[idx] = edge_xy
+                else:
+                    self._state.radius[idx] = -1.0
+                    self._state.circle_fit_par[idx] = [np.nan, np.nan]
+                    if self._state.circle_xy is not None:
+                        self._state.circle_xy[idx] = None
+            else:
+                self._state.radius[idx] = -1.0
+                self._state.circle_fit_par[idx] = [np.nan, np.nan]
+                if self._state.circle_xy is not None:
+                    self._state.circle_xy[idx] = None
+
+            self._refresh_chart_and_anomalies()
+
+            # Refresh display if we are viewing the refitted frame
+            if self._state.image_no == idx:
+                display_frame(
+                    self._state, self.w, idx, self._set_state, self._image_cache,
+                )
+
+            r_val = self._state.radius[idx]
+            if r_val > 0:
+                self.w.header.set_status(
+                    f"Refit frame {idx + 1}: r = {r_val:.1f} px", "#22C55E",
+                )
+            else:
+                self.w.header.set_status(
+                    f"Refit frame {idx + 1}: fit failed", "#FCD34D",
+                )
+            logger.info("Refit frame %d: radius = %s", idx + 1, r_val)
+
+        except Exception as exc:
+            logger.error("Refit frame %d failed: %s", idx + 1, exc)
+            self.w.header.set_status(f"Refit failed: {exc}", "#EF4444")
+
+    def _refresh_chart_and_anomalies(self) -> None:
+        """Refresh the R-t chart and re-run anomaly detection."""
+        if self._state.radius is None:
+            return
+        frames = np.arange(1, len(self._state.radius) + 1)
+        self.w.radius_chart.plot_all(frames, self._state.radius)
+        anomaly_mask = detect_anomalies(self._state.radius)
+        self.w.radius_chart.mark_anomalies(frames, self._state.radius, anomaly_mask)
 
     # ------------------------------------------------------------------ #
     #  Session save/load
