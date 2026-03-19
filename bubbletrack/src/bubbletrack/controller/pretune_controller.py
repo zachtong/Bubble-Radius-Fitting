@@ -14,6 +14,7 @@ from bubbletrack.controller.display_mixin import (
 )
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.circle_fit import circle_fit_taubin
+from bubbletrack.model.conventions import clamp_roi
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.image_io import load_and_normalize
 from bubbletrack.model.removing_factor import compute_removing_factor
@@ -96,10 +97,7 @@ class PretuneController(BaseController):
         # Clamp to actual image dimensions
         if self.state.cur_img is not None:
             h, w = self.state.cur_img.shape[:2]
-            r0 = max(1, min(r0, h))
-            r1 = max(1, min(r1, h))
-            c0 = max(1, min(c0, w))
-            c1 = max(1, min(c1, w))
+            (r0, r1), (c0, c1) = clamp_roi((r0, r1), (c0, c1), h, w)
         self._update(gridx=(r0, r1), gridy=(c0, c1))
         self.w.left_panel.pretune_tab.set_roi((r0, r1), (c0, c1))
         self.w.header.set_status("ROI selected", "#22C55E")

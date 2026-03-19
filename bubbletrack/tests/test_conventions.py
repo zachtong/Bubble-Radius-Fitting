@@ -1,10 +1,37 @@
 """Tests for model/conventions.py — index convention helpers."""
 
 from bubbletrack.model.conventions import (
+    clamp_roi,
     display_to_frame,
     frame_to_display,
     roi_to_slice,
 )
+
+
+class TestClampRoi:
+    def test_clamp_roi_within_bounds(self):
+        """Valid ROI is returned unchanged."""
+        rx, ry = clamp_roi((10, 50), (20, 80), 100, 200)
+        assert rx == (10, 50)
+        assert ry == (20, 80)
+
+    def test_clamp_roi_exceeds_dims(self):
+        """ROI exceeding image dimensions is clamped to image size."""
+        rx, ry = clamp_roi((10, 150), (20, 300), 100, 200)
+        assert rx == (10, 100)
+        assert ry == (20, 200)
+
+    def test_clamp_roi_negative_values(self):
+        """Negative or zero values are clamped to 1."""
+        rx, ry = clamp_roi((-5, 50), (0, 80), 100, 200)
+        assert rx == (1, 50)
+        assert ry == (1, 80)
+
+    def test_clamp_roi_swapped_min_max(self):
+        """Swapped min/max values are corrected."""
+        rx, ry = clamp_roi((50, 10), (80, 20), 100, 200)
+        assert rx == (10, 50)
+        assert ry == (20, 80)
 
 
 class TestRoiToSlice:

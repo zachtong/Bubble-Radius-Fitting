@@ -12,6 +12,24 @@ Convention summary:
 from __future__ import annotations
 
 
+def clamp_roi(
+    gridx: tuple[int, int],
+    gridy: tuple[int, int],
+    img_height: int,
+    img_width: int,
+) -> tuple[tuple[int, int], tuple[int, int]]:
+    """Clamp 1-based inclusive ROI to image dimensions.
+
+    Ensures min >= 1, max <= dimension, and min <= max.
+    """
+    rx = (max(1, min(gridx[0], img_height)), max(1, min(gridx[1], img_height)))
+    ry = (max(1, min(gridy[0], img_width)), max(1, min(gridy[1], img_width)))
+    # Ensure min <= max
+    rx = (min(rx[0], rx[1]), max(rx[0], rx[1]))
+    ry = (min(ry[0], ry[1]), max(ry[0], ry[1]))
+    return rx, ry
+
+
 def roi_to_slice(
     gridx: tuple[int, int], gridy: tuple[int, int]
 ) -> tuple[slice, slice]:
