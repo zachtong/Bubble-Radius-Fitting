@@ -13,7 +13,8 @@ from bubbletrack.controller.pretune_controller import PretuneController
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.constants import DISPLAY_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS
-from bubbletrack.model.state import AppState
+from bubbletrack.model.config import load_config
+from bubbletrack.model.state import AppState, update_state
 from bubbletrack.ui.shortcuts import setup_shortcuts
 
 
@@ -28,7 +29,9 @@ class AppController:
 
     def __init__(self, window) -> None:
         self.w = window
-        self._state = AppState()
+        # Load persisted config and apply to initial state
+        saved = load_config()
+        self._state = update_state(AppState(), **saved) if saved else AppState()
         self._max_radius: float = float("inf")
 
         # LRU image cache (200 MB limit)

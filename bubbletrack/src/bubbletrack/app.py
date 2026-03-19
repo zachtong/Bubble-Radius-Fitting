@@ -9,9 +9,10 @@ from pathlib import Path
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
-from bubbletrack.logging_config import setup_logging
-from bubbletrack.ui.main_window import MainWindow
 from bubbletrack.controller.controller import AppController
+from bubbletrack.logging_config import setup_logging
+from bubbletrack.model.config import save_config
+from bubbletrack.ui.main_window import MainWindow
 
 
 def main():
@@ -35,6 +36,10 @@ def main():
 
     window = MainWindow()
     controller = AppController(window)
+
+    # Auto-save user parameters on application exit
+    app.aboutToQuit.connect(lambda: save_config(controller._get_state()))
+
     window.show()
     sys.exit(app.exec())
 
