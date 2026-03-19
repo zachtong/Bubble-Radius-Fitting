@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from pathlib import Path
 
 import numpy as np
 from PyQt6.QtCore import QTimer
@@ -16,10 +17,13 @@ from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import AUTO_DISPLAY_THROTTLE_MS
 from bubbletrack.model.conventions import frame_to_display
+from bubbletrack.model.export import export_r_data
 from bubbletrack.model.image_io import load_and_normalize
 from bubbletrack.model.state import update_state
 
 logger = logging.getLogger(__name__)
+
+AUTOSAVE_INTERVAL = 50  # frames between incremental auto-saves
 
 
 class AutoController(BaseController):
@@ -115,6 +119,20 @@ class AutoController(BaseController):
             rc, cc, _ = circle_fit_taubin(edge_xy)
             self.state.circle_fit_par[idx] = [rc, cc]
             self.state.circle_xy[idx] = edge_xy
+
+        # Incremental auto-save every AUTOSAVE_INTERVAL frames
+        if (idx + 1) % AUTOSAVE_INTERVAL == 0 and self.state.folder_path:
+            autosave_path = Path(self.state.folder_path) / ".bubbletrack_autosave.mat"
+            try:
+                export_r_data(
+                    str(autosave_path),
+                    self.state.radius,
+                    self.state.circle_fit_par,
+                    self.state.circle_xy,
+                )
+                logger.info("Auto-saved at frame %d to %s", idx, autosave_path)
+            except Exception as exc:
+                logger.warning("Auto-save failed at frame %d: %s", idx, exc)
 
         # Throttle display updates so the UI thread can process user events
         now = time.monotonic()
