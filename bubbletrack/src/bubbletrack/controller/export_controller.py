@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 
 from PyQt6.QtWidgets import QFileDialog
 
@@ -25,7 +26,9 @@ class ExportController(BaseController):
             pp.set_status("No data to export", False)
             return
 
-        default = os.path.join(self._default_export_dir(), "radius_pixel.mat")
+        default = os.path.join(
+            self._default_export_dir(), self._default_filename("R_data"),
+        )
         path, _ = QFileDialog.getSaveFileName(
             self.w, "Export Pixel Data", default,
             "MAT Files (*.mat);;All Files (*)",
@@ -52,7 +55,7 @@ class ExportController(BaseController):
             return
 
         default = os.path.join(
-            self._default_export_dir(), "radius_time_physical.mat",
+            self._default_export_dir(), self._default_filename("RofT_data"),
         )
         path, _ = QFileDialog.getSaveFileName(
             self.w, "Export Physical Data", default,
@@ -83,3 +86,9 @@ class ExportController(BaseController):
     def _default_export_dir(self) -> str:
         """Return the image folder as default export directory, or home."""
         return self.state.folder_path or os.path.expanduser("~")
+
+    @staticmethod
+    def _default_filename(prefix: str, ext: str = ".mat") -> str:
+        """Generate a timestamped filename like ``R_data_20260319_143012.mat``."""
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"{prefix}_{ts}{ext}"
