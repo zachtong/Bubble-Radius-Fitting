@@ -14,6 +14,7 @@ from bubbletrack.controller.display_mixin import display_frame, refresh_chart
 from bubbletrack.controller.worker import BatchWorker
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.cache import ImageCache
+from bubbletrack.model.anomaly import detect_anomalies
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import AUTO_DISPLAY_THROTTLE_MS
 from bubbletrack.model.conventions import frame_to_display
@@ -186,7 +187,17 @@ class AutoController(BaseController):
             self.state, self.w, self.state.image_no, self._set_state,
             self._cache,
         )
-        # Refresh chart with all data
+        # Refresh chart with all data and run anomaly detection
         if self.state.radius is not None:
             frames = np.arange(1, len(self.state.radius) + 1)
             self.w.radius_chart.plot_all(frames, self.state.radius)
+
+            anomaly_mask = detect_anomalies(self.state.radius)
+            self.w.radius_chart.mark_anomalies(frames, self.state.radius, anomaly_mask)
+            anomaly_count = int(anomaly_mask.sum())
+            if anomaly_count > 0:
+                self.w.header.set_status(
+                    f"Done — {anomaly_count} anomalies detected", "#FCD34D",
+                )
+            logger.info("Anomaly detection: %d / %d frames flagged",
+                        anomaly_count, len(self.state.radius))

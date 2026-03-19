@@ -52,6 +52,15 @@ class RadiusChart(QWidget):
         self._plot.addItem(self._scatter)
         self._scatter.sigClicked.connect(self._on_scatter_clicked)
 
+        # Anomaly overlay — yellow triangle markers
+        self._anomaly_scatter = pg.ScatterPlotItem(
+            pen=pg.mkPen("#FCD34D", width=1.5),
+            brush=pg.mkBrush("#FCD34D"),
+            symbol="t",
+            size=12,
+        )
+        self._plot.addItem(self._anomaly_scatter)
+
         layout.addWidget(self._plot)
 
         self._total_frames: int = 0
@@ -70,6 +79,28 @@ class RadiusChart(QWidget):
         self._radii = radii[mask]
         self._scatter.setData(self._frames, self._radii)
 
+    def mark_anomalies(
+        self, frames: np.ndarray, radii: np.ndarray, mask: np.ndarray,
+    ) -> None:
+        """Overlay yellow triangle markers on anomalous data points.
+
+        Parameters
+        ----------
+        frames : np.ndarray
+            1-based frame numbers for every data point.
+        radii : np.ndarray
+            Radius values (may include NaN / non-positive).
+        mask : np.ndarray
+            Boolean array; True = anomalous.  Same length as *frames*.
+        """
+        # Only show anomaly markers for points that are valid AND anomalous
+        valid = np.isfinite(radii) & (radii > 0)
+        show = mask & valid
+        if not np.any(show):
+            self._anomaly_scatter.setData([], [])
+            return
+        self._anomaly_scatter.setData(frames[show], radii[show])
+
     def set_total_frames(self, n: int) -> None:
         """Fix the x-axis range to [1, n]."""
         self._total_frames = n
@@ -79,6 +110,7 @@ class RadiusChart(QWidget):
     def clear(self) -> None:
         """Remove all data points from the chart."""
         self._scatter.setData([], [])
+        self._anomaly_scatter.setData([], [])
         self._frames = np.array([])
         self._radii = np.array([])
 
