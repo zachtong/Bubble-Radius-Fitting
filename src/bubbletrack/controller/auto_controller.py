@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +43,7 @@ class AutoController(BaseController):
         self._auto_start_time: float = 0.0
         self._get_max_radius = get_max_radius
         self._cache = cache
+        self._batch_results: list = []  # Accumulates FolderResult during batch
 
     # -- public handlers -------------------------------------------------- #
 
@@ -268,9 +270,11 @@ class AutoController(BaseController):
             um2px=cfg.um2px,
             rmax_fit_length=cfg.rmax_fit_length,
         )
+        self._batch_results = []
         self._batch_worker.folder_started.connect(self._on_batch_folder_started)
         self._batch_worker.frame_progress.connect(self._on_batch_frame_progress)
         self._batch_worker.folder_done.connect(self._on_batch_folder_done)
+        self._batch_worker.folder_result_ready.connect(self._on_batch_folder_result)
         self._batch_worker.all_done.connect(self._on_batch_all_done)
         self._batch_worker.start()
 
@@ -286,6 +290,22 @@ class AutoController(BaseController):
         status = "✓" if success else "✗"
         logger.info("Batch folder %s: %s — %s", name, status, msg)
 
+    def _on_batch_folder_result(
+        self, folder_path: str, n_frames: int, n_fitted: int,
+        radius: np.ndarray, quality_scores: np.ndarray,
+    ) -> None:
+        from bubbletrack.model.batch_result import FolderResult
+        self._batch_results.append(FolderResult(
+            folder_path=folder_path,
+            folder_name=Path(folder_path).name,
+            success=True,
+            message=f"{n_fitted}/{n_frames} fitted",
+            n_frames=n_frames,
+            n_fitted=n_fitted,
+            radius=radius,
+            quality_scores=quality_scores,
+        ))
+
     def _on_batch_all_done(self, folders_ok: int, total_fitted: int) -> None:
         at = self.w.left_panel.automatic_tab
         at.set_batch_running(False)
@@ -296,3 +316,62 @@ class AutoController(BaseController):
             f"Batch done: {folders_ok} folders, {total_fitted} fitted", "#10b981",
         )
         self._batch_worker = None
+
+        if self._batch_results:
+            from bubbletrack.model.batch_result import BatchResultStore
+            store = BatchResultStore(
+                results=tuple(self._batch_results),
+                timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"),
+                gridx=self.state.gridx,
+                gridy=self.state.gridy,
+                sensitivity=self.state.img_thr,
+            )
+            self._show_batch_browser(store)
+        self._batch_results = []
+
+    def _show_batch_browser(self, store) -> None:
+        from bubbletrack.ui.batch_results_dialog import BatchResultsBrowserDialog
+        dlg = BatchResultsBrowserDialog(store, parent=self.w)
+        dlg.load_folder_requested.connect(self._on_load_batch_folder)
+        dlg.show()  # Non-modal
+
+    def _on_load_batch_folder(self, result) -> None:
+        """Load a batch folder into the main view and restore its results.
+
+        Parameters
+        ----------
+        result : FolderResult
+            The batch result to restore (contains radius + quality_scores).
+        """
+        # 1. Load the folder (scans images, initialises blank results, displays frame 0)
+        self.bus.emit("load_folder", result.folder_path)
+
+        # 2. Restore batch-fitted radius into state
+        if self.state.radius is None:
+            return
+        n_state = len(self.state.radius)
+        n_batch = len(result.radius)
+        n_copy = min(n_state, n_batch)
+        self.state.radius[:n_copy] = result.radius[:n_copy]
+
+        # 3. Re-display current frame (to show fitted/unfitted binary correctly)
+        display_frame(
+            self.state, self.w, self.state.image_no, self._set_state,
+            self._cache,
+        )
+
+        # 4. Plot chart with stored quality scores (circle_xy not available
+        #    so refresh_chart cannot recompute quality — use stored scores)
+        frames = np.arange(1, n_state + 1)
+        if n_state == n_batch:
+            scores = result.quality_scores
+        else:
+            # Frame count changed since batch; pad/truncate scores
+            scores = np.zeros(n_state)
+            scores[:n_copy] = result.quality_scores[:n_copy]
+        self.w.radius_chart.plot_all(frames, self.state.radius, scores)
+
+        n_fitted = int(np.sum(self.state.radius[:n_copy] > 0))
+        self.w.header.set_status(
+            f"Loaded {result.folder_name}: {n_fitted}/{n_state} fitted", "#10b981",
+        )

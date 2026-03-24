@@ -37,6 +37,8 @@ class BatchFolderWorker(QThread):
     frame_progress = pyqtSignal(int, int)
     folder_done = pyqtSignal(str, bool, str)
     all_done = pyqtSignal(int, int)
+    # (folder_path, n_frames, n_fitted, radius_copy, quality_scores)
+    folder_result_ready = pyqtSignal(str, int, int, object, object)
 
     def __init__(
         self,
@@ -155,6 +157,17 @@ class BatchFolderWorker(QThread):
 
             # Export results
             n_fitted = int(np.sum(radius > 0))
+
+            # Compute quality scores while circle_xy is still available
+            from bubbletrack.model.quality import compute_all_quality_scores
+            q_scores = compute_all_quality_scores(
+                radius, circle_fit_par, circle_xy,
+                self._gridx, self._gridy,
+            )
+            self.folder_result_ready.emit(
+                str(folder), n, n_fitted, radius.copy(), q_scores,
+            )
+
             messages: list[str] = []
 
             # Always export R_data (pixel data)

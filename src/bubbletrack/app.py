@@ -17,6 +17,11 @@ from bubbletrack.ui.welcome_dialog import WelcomeDialog
 
 
 def main():
+    # Required for PyInstaller + multiprocessing on Windows.
+    # Without this, child processes re-execute main() and open duplicate GUIs.
+    from multiprocessing import freeze_support
+    freeze_support()
+
     setup_logging(log_dir=Path.home() / ".bubbletrack" / "logs")
 
     app = QApplication(sys.argv)

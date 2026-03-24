@@ -98,7 +98,7 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        "tkinter", "unittest", "email", "xml",
+        "tkinter",
         "PyQt5", "PySide2", "PySide6",
         "PyQt6.QtWebEngine", "PyQt6.QtWebEngineCore", "PyQt6.QtWebEngineWidgets",
         "PyQt6.Qt3D", "PyQt6.QtBluetooth", "PyQt6.QtMultimedia",

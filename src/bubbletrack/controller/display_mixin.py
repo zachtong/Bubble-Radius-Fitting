@@ -100,7 +100,7 @@ def display_frame(
                 state.removing_factor,
                 state.gridx, state.gridy,
             )
-            processed, _ = detect_bubble(
+            processed, edge_xy = detect_bubble(
                 binary_roi, state.bubble_cross_edges, rf,
                 state.gridx, state.gridy,
                 state.removing_obj_radius,
@@ -108,6 +108,18 @@ def display_frame(
                 closing_radius=state.closing_radius,
             )
             bin_display = processed
+
+            # Lazy recovery: when radius is known but circle params are
+            # missing (e.g. loaded from batch results), re-fit from the
+            # edge points we just detected.  Cost: one circle_fit_taubin
+            # per displayed frame, only when needed.
+            if (state.circle_fit_par is not None
+                    and not np.isfinite(state.circle_fit_par[idx]).all()
+                    and edge_xy.shape[0] >= 3):
+                rc, cc, _ = circle_fit_taubin(edge_xy)
+                state.circle_fit_par[idx] = [rc, cc]
+                if state.circle_xy is not None:
+                    state.circle_xy[idx] = edge_xy
         else:
             bin_display = ~binary_roi
 

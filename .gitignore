@@ -6,6 +6,8 @@ dist/
 dist_onefile/
 build/
 .venv/
+.build_env/
+.build_env_mac/
 .pytest_cache/
 
 # IDE / AI tools

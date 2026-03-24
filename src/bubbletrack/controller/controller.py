@@ -95,6 +95,9 @@ class AppController:
         # Clear manual points on tab change
         self.bus.subscribe("tab_changed", lambda idx: self.manual_ctrl.clear_points())
 
+        # Batch browser "Load into Main View" → reuse folder-loading logic
+        self.bus.subscribe("load_folder", self.file_ctrl.on_folder_selected)
+
         self._connect_signals()
 
         # Keyboard shortcuts
