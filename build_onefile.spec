@@ -1,7 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for Bubble Radius Fitting (single-file mode).
+"""PyInstaller spec file for BubbleTrack.
 
-Cross-platform: produces .exe on Windows, .app bundle on macOS.
+Cross-platform:
+  - Windows: onefile .exe  (all binaries packed into a single executable)
+  - macOS:   onedir .app   (proper .app bundle — fast launch, no temp extraction)
 """
 
 import os
@@ -53,7 +55,6 @@ a = Analysis(
         'bubbletrack.ui.welcome_dialog',
         'bubbletrack.ui.batch_config_dialog',
         'bubbletrack.ui.batch_results_dialog',
-        'bubbletrack.ui.pipeline_strip',
         # Controller
         'bubbletrack.controller.base',
         'bubbletrack.controller.controller',
@@ -87,7 +88,6 @@ a = Analysis(
         'bubbletrack.model.autotune',
         'bubbletrack.model.quality',
         'bubbletrack.model.batch_result',
-        'bubbletrack.model.pipeline_inspect',
         # Core
         'bubbletrack.event_bus',
         'bubbletrack.logging_config',
@@ -118,27 +118,33 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='BubbleTrack',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    console=False,
-    icon=icon_file,
-)
-
-# --- macOS: wrap into .app bundle ---
 if IS_MAC:
-    app = BUNDLE(
+    # ---- macOS: onedir mode → .app bundle (fast launch) ---- #
+    exe = EXE(
+        pyz,
+        a.scripts,
+        exclude_binaries=True,
+        name='BubbleTrack',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        icon=icon_file,
+    )
+
+    coll = COLLECT(
         exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=False,
+        name='BubbleTrack',
+    )
+
+    app = BUNDLE(
+        coll,
         name='BubbleTrack.app',
         icon=icon_icns if os.path.exists(icon_icns) else None,
         bundle_identifier='com.utaustin.bubbletrack',
@@ -146,4 +152,22 @@ if IS_MAC:
             'CFBundleShortVersionString': '3.0.0',
             'NSHighResolutionCapable': True,
         },
+    )
+else:
+    # ---- Windows: onefile .exe ---- #
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        [],
+        name='BubbleTrack',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        upx_exclude=[],
+        console=False,
+        icon=icon_file,
     )

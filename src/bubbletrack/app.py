@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 import sys
 from pathlib import Path
@@ -17,11 +18,6 @@ from bubbletrack.ui.welcome_dialog import WelcomeDialog
 
 
 def main():
-    # Required for PyInstaller + multiprocessing on Windows.
-    # Without this, child processes re-execute main() and open duplicate GUIs.
-    from multiprocessing import freeze_support
-    freeze_support()
-
     setup_logging(log_dir=Path.home() / ".bubbletrack" / "logs")
 
     app = QApplication(sys.argv)
@@ -74,4 +70,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # Must be called before main() so PyInstaller child processes
+    # exit immediately instead of re-executing the GUI.
+    multiprocessing.freeze_support()
     main()

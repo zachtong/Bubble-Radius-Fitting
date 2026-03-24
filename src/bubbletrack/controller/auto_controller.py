@@ -331,9 +331,10 @@ class AutoController(BaseController):
 
     def _show_batch_browser(self, store) -> None:
         from bubbletrack.ui.batch_results_dialog import BatchResultsBrowserDialog
-        dlg = BatchResultsBrowserDialog(store, parent=self.w)
-        dlg.load_folder_requested.connect(self._on_load_batch_folder)
-        dlg.show()  # Non-modal
+        # Store reference to prevent garbage collection before dialog is shown
+        self._batch_browser_dlg = BatchResultsBrowserDialog(store, parent=self.w)
+        self._batch_browser_dlg.load_folder_requested.connect(self._on_load_batch_folder)
+        self._batch_browser_dlg.show()  # Non-modal
 
     def _on_load_batch_folder(self, result) -> None:
         """Load a batch folder into the main view and restore its results.
