@@ -35,6 +35,8 @@ a = Analysis(
         'bubbletrack.ui.shortcuts',
         'bubbletrack.ui.image_compare',
         'bubbletrack.ui.welcome_dialog',
+        'bubbletrack.ui.batch_config_dialog',
+        'bubbletrack.ui.pipeline_strip',
         # Controller
         'bubbletrack.controller.base',
         'bubbletrack.controller.controller',
@@ -45,6 +47,8 @@ a = Analysis(
         'bubbletrack.controller.export_controller',
         'bubbletrack.controller.display_mixin',
         'bubbletrack.controller.worker',
+        'bubbletrack.controller.autotune_worker',
+        'bubbletrack.controller.batch_folder_worker',
         # Model
         'bubbletrack.model.anomaly',
         'bubbletrack.model.auto_optimize',
@@ -63,6 +67,9 @@ a = Analysis(
         'bubbletrack.model.session',
         'bubbletrack.model.state',
         'bubbletrack.model.undo',
+        'bubbletrack.model.autotune',
+        'bubbletrack.model.quality',
+        'bubbletrack.model.pipeline_inspect',
         # Core
         'bubbletrack.event_bus',
         'bubbletrack.logging_config',

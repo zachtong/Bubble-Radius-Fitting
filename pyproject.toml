@@ -1,6 +1,6 @@
 [project]
 name = "bubbletrack"
-version = "2.0.0"
+version = "3.0.0"
 description = "Bubble radius fitting from high-speed camera images"
 requires-python = ">=3.10"
 dependencies = [
