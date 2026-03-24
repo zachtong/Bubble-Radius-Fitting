@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="260" viewBox="0 0 420 260">
+  <defs>
+    <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#111114"/>
+      <stop offset="100%" style="stop-color:#18181b"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="260" fill="url(#bg4)" rx="12"/>
+  <rect x="0" y="0" width="420" height="3" fill="#3b82f6" rx="1.5"/>
+
+  <!-- Title -->
+  <text x="24" y="36" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#3b82f6" letter-spacing="1">DATA &amp; EXPORT</text>
+  <text x="24" y="62" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#fafafa">Flexible Output Formats</text>
+
+  <!-- Format cards -->
+  <rect x="24" y="80" width="116" height="72" fill="#09090b" rx="8" stroke="#27272a" stroke-width="1"/>
+  <text x="82" y="106" font-family="system-ui, sans-serif" font-size="22" font-weight="800" fill="#f59e0b" text-anchor="middle">.mat</text>
+  <text x="82" y="122" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">R_data + RofT_data</text>
+  <text x="82" y="142" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">MATLAB compatible</text>
+
+  <rect x="152" y="80" width="116" height="72" fill="#09090b" rx="8" stroke="#27272a" stroke-width="1"/>
+  <text x="210" y="106" font-family="system-ui, sans-serif" font-size="22" font-weight="800" fill="#10b981" text-anchor="middle">CSV</text>
+  <text x="210" y="122" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">Universal format</text>
+  <text x="210" y="142" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">Any spreadsheet</text>
+
+  <rect x="280" y="80" width="116" height="72" fill="#09090b" rx="8" stroke="#27272a" stroke-width="1"/>
+  <text x="338" y="106" font-family="system-ui, sans-serif" font-size="22" font-weight="800" fill="#6366f1" text-anchor="middle">Excel</text>
+  <text x="338" y="122" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">Multi-sheet .xlsx</text>
+  <text x="338" y="142" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">Ready to share</text>
+
+  <!-- Additional features -->
+  <rect x="24" y="164" width="372" height="80" fill="#09090b" rx="8"/>
+
+  <!-- Feature items -->
+  <circle cx="46" cy="188" r="4" fill="#6366f1"/>
+  <text x="58" y="192" font-family="system-ui, sans-serif" font-size="11" fill="#a1a1aa">Physical-unit conversion (um/px, fps)</text>
+
+  <circle cx="46" cy="212" r="4" fill="#6366f1"/>
+  <text x="58" y="216" font-family="system-ui, sans-serif" font-size="11" fill="#a1a1aa">PDF report with parameters, stats &amp; R(t) chart</text>
+
+  <circle cx="46" cy="236" r="4" fill="#6366f1"/>
+  <text x="58" y="240" font-family="system-ui, sans-serif" font-size="11" fill="#a1a1aa">Session save/load (.brt) for reproducibility</text>
+</svg>

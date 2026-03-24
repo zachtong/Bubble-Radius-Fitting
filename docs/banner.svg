@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="200" viewBox="0 0 900 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="50%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+    <linearGradient id="bubble" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0.1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="200" fill="url(#bg)" rx="12"/>
+
+  <!-- Accent line -->
+  <rect x="0" y="196" width="900" height="4" fill="url(#accent)" rx="0"/>
+
+  <!-- Decorative bubbles -->
+  <circle cx="750" cy="60" r="45" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.25"/>
+  <circle cx="750" cy="60" r="35" fill="none" stroke="#6366f1" stroke-width="1.5" opacity="0.2"/>
+  <circle cx="820" cy="120" r="30" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
+  <circle cx="680" cy="140" r="20" fill="none" stroke="#6366f1" stroke-width="1" opacity="0.15"/>
+  <circle cx="850" cy="50" r="15" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.15"/>
+
+  <!-- Bubble fill hints -->
+  <circle cx="750" cy="60" r="44" fill="url(#bubble)"/>
+  <circle cx="820" cy="120" r="29" fill="url(#bubble)"/>
+
+  <!-- Crosshair on main bubble -->
+  <line x1="730" y1="60" x2="770" y2="60" stroke="#ef4444" stroke-width="1.5" opacity="0.6"/>
+  <line x1="750" y1="40" x2="750" y2="80" stroke="#ef4444" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Edge detection dots on bubble -->
+  <circle cx="705" cy="58" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="710" cy="40" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="720" cy="25" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="735" cy="17" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="755" cy="15" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="770" cy="18" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="783" cy="28" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="790" cy="42" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="794" cy="60" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="790" cy="78" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="783" cy="90" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="770" cy="100" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="755" cy="104" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="735" cy="102" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="720" cy="95" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="710" cy="82" r="2" fill="#22c55e" opacity="0.7"/>
+  <circle cx="705" cy="68" r="2" fill="#22c55e" opacity="0.7"/>
+
+  <!-- Mini R-t chart -->
+  <rect x="60" y="110" width="120" height="60" fill="none" stroke="#334155" stroke-width="1" rx="4" opacity="0.5"/>
+  <polyline points="70,158 80,155 90,148 100,140 110,130 120,125 130,128 140,135 150,145 160,152 170,158"
+    fill="none" stroke="#ef4444" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="120" cy="125" r="3" fill="#ef4444" opacity="0.6"/>
+
+  <!-- Title -->
+  <text x="60" y="65" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="42" font-weight="700" fill="#f8fafc">
+    BubbleTrack
+  </text>
+
+  <!-- Version badge -->
+  <rect x="330" y="42" width="55" height="24" fill="url(#accent)" rx="12"/>
+  <text x="357" y="59" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff" text-anchor="middle">v3.0</text>
+
+  <!-- Tagline -->
+  <text x="60" y="92" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="16" fill="#94a3b8">
+    Bubble radius extraction &amp; circle fitting from image sequences
+  </text>
+</svg>
