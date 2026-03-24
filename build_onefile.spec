@@ -1,12 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for Bubble Radius Fitting (single-file mode)."""
+"""PyInstaller spec file for Bubble Radius Fitting (single-file mode).
+
+Cross-platform: produces .exe on Windows, .app bundle on macOS.
+"""
 
 import os
+import sys
 
 block_cipher = None
 
 ROOT = os.path.abspath('.')
 SRC = os.path.join(ROOT, 'src', 'bubbletrack')
+IS_MAC = sys.platform == 'darwin'
+
+# --- Icon: .ico for Windows, .icns for macOS ---
+icon_ico = os.path.join(SRC, 'resources', 'icon.ico')
+icon_icns = os.path.join(SRC, 'resources', 'icon.icns')
+
+if IS_MAC and os.path.exists(icon_icns):
+    icon_file = icon_icns
+elif os.path.exists(icon_ico):
+    icon_file = icon_ico
+else:
+    icon_file = None
 
 a = Analysis(
     [os.path.join(SRC, 'app.py')],
@@ -107,12 +123,25 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='BubbleRadiusFitting',
+    name='BubbleTrack',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     console=False,
-    icon=os.path.join(SRC, 'resources', 'icon.ico'),
+    icon=icon_file,
 )
+
+# --- macOS: wrap into .app bundle ---
+if IS_MAC:
+    app = BUNDLE(
+        exe,
+        name='BubbleTrack.app',
+        icon=icon_icns if os.path.exists(icon_icns) else None,
+        bundle_identifier='com.utaustin.bubbletrack',
+        info_plist={
+            'CFBundleShortVersionString': '3.0.0',
+            'NSHighResolutionCapable': True,
+        },
+    )

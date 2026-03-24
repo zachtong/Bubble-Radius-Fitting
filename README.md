@@ -5,31 +5,20 @@ Desktop application for extracting bubble radius vs. time data from high-speed c
 ## Installation
 
 ```bash
-# Clone and set up
 git clone https://github.com/zachtong/Bubble-Radius-Fitting.git
 cd Bubble-Radius-Fitting
-
-# Create virtual environment
-python -m venv .venv
-
-# Activate (Windows)
-.venv\Scripts\activate
-# Activate (macOS / Linux)
-source .venv/bin/activate
-
-# Install
-pip install -e .
 ```
+
+**One-command setup** (creates isolated environment, installs all dependencies):
+
+| Platform | Setup | Launch |
+|----------|-------|--------|
+| **Windows** | `setup.bat` | Double-click `BubbleTrack.bat` |
+| **macOS / Linux** | `bash setup.sh` | `bash bubbletrack.sh` |
+
+The setup script creates a `.venv/` directory with all dependencies. Your system Python is not modified.
 
 ## Usage
-
-```bash
-# Launch the GUI
-bubbletrack
-
-# Or run as a module
-python -m bubbletrack
-```
 
 ### Quick Start
 
@@ -116,15 +105,14 @@ pytest -v
 
 ## Building the Executable
 
-```bash
-pip install -e ".[dev]"
+**One-command build** (installs PyInstaller if needed, produces a single distributable file):
 
-# Multi-file distribution (faster startup)
-pyinstaller build.spec
+| Platform | Command | Output |
+|----------|---------|--------|
+| **Windows** | `build_app.bat` | `dist\BubbleTrack.exe` |
+| **macOS** | `bash build_app.sh` | `dist/BubbleTrack.app` |
 
-# Single-file distribution (easier to share)
-pyinstaller build_onefile.spec
-```
+The output file is fully self-contained -- no Python installation needed on the target machine.
 
 ## Algorithm
 

@@ -20,5 +20,9 @@ Thumbs.db
 # Example image data (too large for git)
 examples/
 
+# Generated launchers (created by setup scripts)
+/BubbleTrack.bat
+/bubbletrack.sh
+
 # Application icon (resource copy lives in src/bubbletrack/resources/)
 /icon.ico
