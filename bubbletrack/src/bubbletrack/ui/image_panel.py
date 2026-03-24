@@ -29,6 +29,7 @@ class ImagePanel(QWidget):
 
     point_clicked = pyqtSignal(float, float)
     roi_selected = pyqtSignal(int, int, int, int)
+    select_roi_clicked = pyqtSignal()
 
     def __init__(self, title: str = "Image", parent: QWidget | None = None):
         super().__init__(parent)
@@ -44,20 +45,33 @@ class ImagePanel(QWidget):
         top.addWidget(lbl)
         top.addStretch()
 
+        # ROI button + coordinate label
+        self._roi_label = QLabel("")
+        self._roi_label.setObjectName("dimText")
+        self._roi_label.setStyleSheet("font-size: 11px;")
+        top.addWidget(self._roi_label)
+
+        self._select_roi_btn = QPushButton("ROI")
+        self._select_roi_btn.setFixedSize(42, 28)
+        self._select_roi_btn.setObjectName("secondaryBtn")
+        self._select_roi_btn.setToolTip("Drag on image to select Region of Interest")
+        self._select_roi_btn.clicked.connect(self.select_roi_clicked)
+        top.addWidget(self._select_roi_btn)
+
         self._zoom_in_btn = QPushButton("+")
-        self._zoom_in_btn.setFixedSize(24, 24)
+        self._zoom_in_btn.setFixedSize(28, 28)
         self._zoom_in_btn.setObjectName("secondaryBtn")
         self._zoom_in_btn.clicked.connect(self._zoom_in)
         top.addWidget(self._zoom_in_btn)
 
         self._zoom_out_btn = QPushButton("\u2212")
-        self._zoom_out_btn.setFixedSize(24, 24)
+        self._zoom_out_btn.setFixedSize(28, 28)
         self._zoom_out_btn.setObjectName("secondaryBtn")
         self._zoom_out_btn.clicked.connect(self._zoom_out)
         top.addWidget(self._zoom_out_btn)
 
         self._zoom_reset_btn = QPushButton("\u21BA")
-        self._zoom_reset_btn.setFixedSize(24, 24)
+        self._zoom_reset_btn.setFixedSize(28, 28)
         self._zoom_reset_btn.setObjectName("secondaryBtn")
         self._zoom_reset_btn.clicked.connect(self._zoom_reset)
         top.addWidget(self._zoom_reset_btn)
@@ -176,6 +190,13 @@ class ImagePanel(QWidget):
             self._view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
             self._view.unsetCursor()
             self._view.setStyleSheet("border:1px solid rgba(255,255,255,0.06); border-radius:8px; background:#0c0d12;")
+
+    # -- ROI label --
+    def set_roi_text(self, gridx: tuple[int, int], gridy: tuple[int, int]) -> None:
+        """Update the ROI coordinate display in the toolbar."""
+        self._roi_label.setText(
+            f"X: {gridy[0]}\u2013{gridy[1]}  Y: {gridx[0]}\u2013{gridx[1]}"
+        )
 
     # -- Zoom helpers --
     def _zoom_in(self):

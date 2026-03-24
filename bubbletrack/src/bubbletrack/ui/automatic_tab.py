@@ -15,6 +15,7 @@ class AutomaticTab(QWidget):
     fit_clicked = pyqtSignal()
     stop_clicked = pyqtSignal()
     clear_clicked = pyqtSignal()
+    batch_folders_clicked = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -74,6 +75,34 @@ class AutomaticTab(QWidget):
         btn_row.addWidget(self._clear_btn)
 
         layout.addLayout(btn_row)
+
+        # -- Batch multi-folder section --
+        sep = QLabel("")
+        sep.setFixedHeight(1)
+        sep.setStyleSheet("background: rgba(255,255,255,0.06);")
+        layout.addWidget(sep)
+
+        batch_lbl = QLabel("Batch Multi-Folder")
+        batch_lbl.setObjectName("sectionTitle")
+        layout.addWidget(batch_lbl)
+
+        self._batch_btn = QPushButton("Batch Folders...")
+        self._batch_btn.setObjectName("secondaryBtn")
+        self._batch_btn.clicked.connect(self.batch_folders_clicked)
+        layout.addWidget(self._batch_btn)
+
+        self._batch_status = QLabel("Select a parent directory containing experiment folders")
+        self._batch_status.setObjectName("dimText")
+        self._batch_status.setWordWrap(True)
+        layout.addWidget(self._batch_status)
+
+        self._batch_progress = QProgressBar()
+        self._batch_progress.setRange(0, 100)
+        self._batch_progress.setValue(0)
+        self._batch_progress.setTextVisible(False)
+        self._batch_progress.hide()
+        layout.addWidget(self._batch_progress)
+
         layout.addStretch()
 
     # -- Public API --
@@ -103,3 +132,18 @@ class AutomaticTab(QWidget):
     def reset_progress(self):
         self._progress.setValue(0)
         self._progress_label.setText("Ready")
+
+    # -- Batch multi-folder API --
+
+    def set_batch_running(self, running: bool) -> None:
+        self._batch_btn.setEnabled(not running)
+        self._batch_progress.setVisible(running)
+        if not running:
+            self._batch_progress.setValue(0)
+
+    def set_batch_status(self, text: str) -> None:
+        self._batch_status.setText(text)
+
+    def set_batch_progress(self, current: int, total: int) -> None:
+        pct = int(current / max(total, 1) * 100)
+        self._batch_progress.setValue(pct)

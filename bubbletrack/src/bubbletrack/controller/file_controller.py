@@ -63,7 +63,7 @@ class FileController(BaseController):
         # Update UI
         lp = self.w.left_panel
         lp.image_source.set_info(f"{len(images)} images  |  {os.path.basename(images[0])}")
-        lp.pretune_tab.set_roi(self.state.gridx, self.state.gridy)
+        self.w.original_panel.set_roi_text(self.state.gridx, self.state.gridy)
         lp.pretune_tab.set_frame_range(len(images))
         lp.manual_tab.set_frame_range(len(images))
         lp.automatic_tab.set_range(len(images))
@@ -130,7 +130,7 @@ class FileController(BaseController):
         lp.image_source.set_info(
             f"{n} frames  |  {basename}  |  {reader.fps:.1f} fps"
         )
-        lp.pretune_tab.set_roi(self.state.gridx, self.state.gridy)
+        self.w.original_panel.set_roi_text(self.state.gridx, self.state.gridy)
         lp.pretune_tab.set_frame_range(n)
         lp.manual_tab.set_frame_range(n)
         lp.automatic_tab.set_range(n)

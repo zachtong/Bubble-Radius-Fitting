@@ -18,6 +18,7 @@ from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.conventions import clamp_roi
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.image_io import load_and_normalize
+from bubbletrack.model.quality import compute_fit_quality
 from bubbletrack.model.removing_factor import compute_removing_factor
 from bubbletrack.model.state import update_state
 
@@ -39,6 +40,9 @@ class PretuneController(BaseController):
         # Preview detection cache: skip load_and_normalize when only RF changes
         self._last_binary_roi = None
         self._last_binary_params: tuple | None = None
+
+        # Auto-tune worker (lazy import to avoid circular dependency)
+        self._autotune_worker = None
 
     # -- public handlers -------------------------------------------------- #
 
@@ -139,7 +143,7 @@ class PretuneController(BaseController):
         self._invalidate_binary_cache()
         if self._cache is not None:
             self._cache.invalidate()
-        self.w.left_panel.pretune_tab.set_roi((r0, r1), (c0, c1))
+        self.w.original_panel.set_roi_text((r0, r1), (c0, c1))
         self.w.header.set_status("ROI selected", "#10b981")
         display_frame(
             self.state, self.w, self.state.image_no, self._set_state,
@@ -181,6 +185,7 @@ class PretuneController(BaseController):
                     self.w.header.set_status(
                         f"Radius outlier ({radius:.0f} px), skipped", "#f59e0b",
                     )
+                    self.w.left_panel.pretune_tab.hide_quality()
                 else:
                     logger.info("Fit frame %d: radius=%.2f", idx, radius)
                     self.state.radius[idx] = radius
@@ -195,7 +200,97 @@ class PretuneController(BaseController):
                     self.w.header.set_status(
                         f"R = {radius:.1f} px", "#10b981",
                     )
+
+                    # Show quality metrics
+                    roi_h = self.state.gridx[1] - self.state.gridx[0] + 1
+                    roi_w = self.state.gridy[1] - self.state.gridy[0] + 1
+                    q = compute_fit_quality(
+                        edge_xy, rc, cc, radius, min(roi_h, roi_w),
+                    )
+                    self.w.left_panel.pretune_tab.show_quality(
+                        q.n_edge_points, q.rms_residual, int(q.score * 100),
+                    )
             else:
                 self.w.header.set_status("Too few edge points", "#ef4444")
+                self.w.left_panel.pretune_tab.hide_quality()
         except Exception as exc:
             self.w.header.set_status(f"Error: {exc}", "#ef4444")
+            self.w.left_panel.pretune_tab.hide_quality()
+
+    # -- Auto-tune -------------------------------------------------------- #
+
+    def on_autotune(self) -> None:
+        """Launch auto-tune grid search in background thread."""
+        from bubbletrack.controller.autotune_worker import AutoTuneWorker
+
+        if not self.state.images:
+            return
+        # Cancel any still-running worker before starting a new one
+        if self._autotune_worker is not None:
+            if self._autotune_worker.isRunning():
+                self._autotune_worker.cancel()
+                self._autotune_worker.wait()
+            self._autotune_worker = None
+
+        idx = self.state.image_no
+        self.w.header.set_status("Auto-tuning...", "#f59e0b")
+        self.w.left_panel.pretune_tab.set_autotune_enabled(False)
+
+        self._autotune_worker = AutoTuneWorker(
+            self.state.images[idx],
+            self.state.gridx,
+            self.state.gridy,
+            self.state.bubble_cross_edges,
+            gaussian_sigma=self.state.gaussian_sigma,
+            clahe_clip=self.state.clahe_clip,
+            opening_radius=self.state.opening_radius,
+            closing_radius=self.state.closing_radius,
+            max_radius=self._get_max_radius(),
+        )
+        self._autotune_worker.progress.connect(self._on_autotune_progress)
+        self._autotune_worker.result_ready.connect(self._on_autotune_finished)
+        self._autotune_worker.start()
+
+    def _on_autotune_progress(self, current: int, total: int) -> None:
+        pct = int(100 * current / total) if total > 0 else 0
+        self.w.header.set_status(f"Auto-tuning... {pct}%", "#f59e0b")
+
+    def _on_autotune_finished(self, result) -> None:
+        self.w.left_panel.pretune_tab.set_autotune_enabled(True)
+        # Wait for the thread to fully exit before dropping the reference,
+        # otherwise GC may destroy the QThread while it is still running.
+        if self._autotune_worker is not None:
+            self._autotune_worker.wait()
+        self._autotune_worker = None
+
+        if result is None:
+            self.w.header.set_status("Auto-tune: no valid fit found", "#ef4444")
+            return
+
+        # Apply best parameters to state + UI
+        pt = self.w.left_panel.pretune_tab
+        pt.set_threshold(result.threshold)
+        pt.set_removing_factor(result.removing_factor)
+
+        self._update(
+            img_thr=result.threshold,
+            removing_factor=result.removing_factor,
+        )
+        self._invalidate_binary_cache()
+        if self._cache is not None:
+            self._cache.invalidate()
+
+        # Show quality metrics
+        q = result.quality
+        pt.show_quality(q.n_edge_points, q.rms_residual, int(q.score * 100))
+
+        # Run full fit (includes display_frame, redraw, and chart refresh)
+        self.on_pretune_fit()
+
+        # Overwrite per-frame status with autotune summary
+        self.w.header.set_status(
+            f"Auto-tuned: thr={result.threshold:.2f}, RF={result.removing_factor}"
+            f" \u2014 confidence {int(q.score * 100)}%"
+            f" ({result.candidates_evaluated} tested)",
+            "#10b981",
+        )

@@ -16,7 +16,6 @@ from bubbletrack.controller.file_controller import FileController
 from bubbletrack.controller.manual_controller import ManualController
 from bubbletrack.controller.pretune_controller import PretuneController
 from bubbletrack.event_bus import EventBus
-from bubbletrack.model.anomaly import detect_anomalies
 from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
 from bubbletrack.model.constants import DISPLAY_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS
@@ -110,6 +109,7 @@ class AppController:
             "zoom_out": self.w.original_panel._zoom_out,
             "zoom_reset": self.w.original_panel._zoom_reset,
             "undo": self.manual_ctrl.undo_last_point,
+            "play_pause": self.w.frame_scrubber.toggle_play,
         })
 
     # ------------------------------------------------------------------ #
@@ -148,7 +148,7 @@ class AppController:
         pt.removing_factor_changed.connect(self.pretune_ctrl.on_removing_factor_changed)
         pt.edges_changed.connect(self.pretune_ctrl.on_edges_changed)
         pt.fit_clicked.connect(self.pretune_ctrl.on_pretune_fit)
-        pt.select_roi_clicked.connect(self.pretune_ctrl.on_select_roi)
+        pt.autotune_clicked.connect(self.pretune_ctrl.on_autotune)
         pt.frame_selected.connect(self.file_ctrl.on_tab_frame_selected)
         pt.filters_changed.connect(self.pretune_ctrl.on_filters_changed)
 
@@ -168,6 +168,7 @@ class AppController:
         at.fit_clicked.connect(self.auto_ctrl.on_auto_fit)
         at.stop_clicked.connect(self.auto_ctrl.on_auto_stop)
         at.clear_clicked.connect(self.auto_ctrl.on_auto_clear)
+        at.batch_folders_clicked.connect(self.auto_ctrl.on_batch_folders)
 
         # Post processing
         pp = lp.post_processing
@@ -175,7 +176,8 @@ class AppController:
         pp.export_rof_t_clicked.connect(self.export_ctrl.on_export_rof_t)
         pp.generate_report_clicked.connect(self.export_ctrl.on_generate_report)
 
-        # ROI selection from image panel
+        # ROI: button click → enter selection mode, drag complete → apply ROI
+        self.w.original_panel.select_roi_clicked.connect(self.pretune_ctrl.on_select_roi)
         self.w.original_panel.roi_selected.connect(self.pretune_ctrl.on_roi_selected)
 
         # R-t chart click-to-jump
@@ -185,9 +187,24 @@ class AppController:
         self.w.radius_chart.delete_requested.connect(self._on_delete_point)
         self.w.radius_chart.refit_requested.connect(self._on_refit_point)
 
+        # Compare mode change — refresh display immediately
+        self.w.compare_mode_changed.connect(self._on_compare_mode_changed)
+
         # Session save/load (menubar File menu)
         self.w.save_session_requested.connect(self._on_save_session)
         self.w.load_session_requested.connect(self._on_load_session)
+
+    # ------------------------------------------------------------------ #
+    #  Compare mode refresh
+    # ------------------------------------------------------------------ #
+
+    def _on_compare_mode_changed(self, _mode_value: str) -> None:
+        """Re-render the current frame when compare mode changes."""
+        if self._state.images:
+            display_frame(
+                self._state, self.w, self._state.image_no,
+                self._set_state, self._image_cache,
+            )
 
     # ------------------------------------------------------------------ #
     #  Result editing (delete / refit single frame)
@@ -203,7 +220,7 @@ class AppController:
         if self._state.circle_xy is not None:
             self._state.circle_xy[idx] = None
 
-        self._refresh_chart_and_anomalies()
+        self._refresh_chart()
 
         # Refresh display if we are viewing the deleted frame
         if self._state.image_no == idx:
@@ -267,7 +284,7 @@ class AppController:
                 if self._state.circle_xy is not None:
                     self._state.circle_xy[idx] = None
 
-            self._refresh_chart_and_anomalies()
+            self._refresh_chart()
 
             # Refresh display if we are viewing the refitted frame
             if self._state.image_no == idx:
@@ -290,14 +307,9 @@ class AppController:
             logger.error("Refit frame %d failed: %s", idx + 1, exc)
             self.w.header.set_status(f"Refit failed: {exc}", "#ef4444")
 
-    def _refresh_chart_and_anomalies(self) -> None:
-        """Refresh the R-t chart and re-run anomaly detection."""
-        if self._state.radius is None:
-            return
-        frames = np.arange(1, len(self._state.radius) + 1)
-        self.w.radius_chart.plot_all(frames, self._state.radius)
-        anomaly_mask = detect_anomalies(self._state.radius)
-        self.w.radius_chart.mark_anomalies(frames, self._state.radius, anomaly_mask)
+    def _refresh_chart(self) -> None:
+        """Refresh the R-t chart with quality-based coloring."""
+        refresh_chart(self._state, self.w)
 
     # ------------------------------------------------------------------ #
     #  Session save/load

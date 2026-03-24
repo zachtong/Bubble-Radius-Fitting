@@ -226,14 +226,17 @@ class CollapsibleSection(QWidget):
 
     def __init__(self, title: str, parent: QWidget | None = None, collapsed: bool = False):
         super().__init__(parent)
+        self._title = title
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self._toggle = QPushButton(f"  {title}")
+        arrow = "▸" if collapsed else "▾"
+        self._toggle = QPushButton(f"  {arrow} {title}")
         self._toggle.setObjectName("collapseToggle")
         self._toggle.setCheckable(True)
         self._toggle.setChecked(not collapsed)
+        self._toggle.setToolTip("Click to expand/collapse")
         self._toggle.clicked.connect(self._on_toggle)
         layout.addWidget(self._toggle)
 
@@ -253,9 +256,8 @@ class CollapsibleSection(QWidget):
 
     def _on_toggle(self, checked: bool):
         self._content.setVisible(checked)
-        arrow = "v" if checked else ">"
-        text = self._toggle.text().lstrip(" >v")
-        self._toggle.setText(f"  {arrow} {text}" if not checked else f"  {text}")
+        arrow = "▾" if checked else "▸"
+        self._toggle.setText(f"  {arrow} {self._title}")
 
 
 # ------------------------------------------------------------------ #

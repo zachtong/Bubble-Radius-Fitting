@@ -80,3 +80,49 @@ PREVIEW_DEBOUNCE_MS: int = 50
 
 AUTO_DISPLAY_THROTTLE_MS: int = 150
 """Minimum interval (ms) between display refreshes during automatic fitting."""
+
+# ------------------------------------------------------------------ #
+#  Fit quality scoring
+# ------------------------------------------------------------------ #
+
+QUALITY_TARGET_EDGE_DENSITY: float = 0.6
+"""Target edge points per pixel of circumference (~1 point every 1.7 px)."""
+
+QUALITY_MAX_RMS_RATIO: float = 0.15
+"""RMS residual / radius ratio above which the fit is considered poor."""
+
+QUALITY_N_SECTORS: int = 8
+"""Number of angular sectors for coverage scoring."""
+
+QUALITY_MIN_RADIUS_FRACTION: float = 0.03
+"""Minimum plausible radius as fraction of ROI short side."""
+
+QUALITY_MAX_RADIUS_FRACTION: float = 0.85
+"""Maximum plausible radius as fraction of ROI short side."""
+
+QUALITY_GOOD_THRESHOLD: float = 0.65
+"""Fit quality score >= this is considered reliable (green marker)."""
+
+QUALITY_WARN_THRESHOLD: float = 0.35
+"""Fit quality score >= this but < GOOD is marginal (amber). Below = unreliable (red)."""
+
+# ------------------------------------------------------------------ #
+#  Auto-tune grid search
+# ------------------------------------------------------------------ #
+
+AUTOTUNE_THR_COARSE: tuple[float, ...] = (
+    0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90,
+)
+"""Coarse threshold grid for auto-tune (9 points, step 0.10)."""
+
+AUTOTUNE_RF_COARSE: tuple[int, ...] = (20, 35, 50, 65, 75, 85, 92, 98)
+"""Coarse removing-factor grid for auto-tune (8 points)."""
+
+AUTOTUNE_THR_FINE_STEP: float = 0.02
+"""Fine-search threshold step around best coarse value."""
+
+AUTOTUNE_RF_FINE_STEP: int = 3
+"""Fine-search removing-factor step around best coarse value."""
+
+AUTOTUNE_TOP_K: int = 5
+"""Number of top coarse candidates to refine."""

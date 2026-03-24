@@ -11,9 +11,10 @@ import numpy as np
 
 from bubbletrack.model.cache import ImageCache
 from bubbletrack.model.circle_fit import circle_fit_taubin
-from bubbletrack.model.conventions import frame_to_display
+from bubbletrack.model.conventions import frame_to_display, roi_to_slice
 from bubbletrack.model.detection import detect_bubble
 from bubbletrack.model.image_io import load_and_normalize, normalize_frame
+from bubbletrack.model.quality import compute_all_quality_scores
 from bubbletrack.model.removing_factor import compute_removing_factor
 from bubbletrack.model.state import AppState, update_state
 from bubbletrack.ui.image_compare import CompareMode, create_overlay, create_wipe
@@ -113,11 +114,24 @@ def display_frame(
         # Render according to compare mode
         mode = window.compare_mode
 
-        if mode is CompareMode.OVERLAY:
-            composite = create_overlay(cur_img, bin_display)
-            window.original_panel.set_image_rgb(composite)
-        elif mode is CompareMode.WIPE:
-            composite = create_wipe(cur_img, bin_display)
+        if mode in (CompareMode.OVERLAY, CompareMode.WIPE):
+            # bin_display is ROI-sized; embed into full-image canvas
+            # so the composite matches cur_img dimensions.
+            h, w = cur_img.shape[:2]
+            full_bin = np.zeros((h, w), dtype=bin_display.dtype)
+            rs, cs = roi_to_slice(state.gridx, state.gridy)
+            # Clamp slices to actual image bounds to avoid index errors
+            r_end = min(rs.stop, h)
+            c_end = min(cs.stop, w)
+            roi_h = r_end - rs.start
+            roi_w = c_end - cs.start
+            full_bin[rs.start:r_end, cs.start:c_end] = (
+                bin_display[:roi_h, :roi_w]
+            )
+            if mode is CompareMode.OVERLAY:
+                composite = create_overlay(cur_img, full_bin)
+            else:
+                composite = create_wipe(cur_img, full_bin)
             window.original_panel.set_image_rgb(composite)
         else:
             # Side-by-side (default)
@@ -148,11 +162,24 @@ def display_frame(
         window.header.set_status(f"Error: {exc}", "#ef4444")
 
 
-def refresh_chart(state: AppState, window) -> None:
-    """Redraw R-t chart from state data (prevents duplicate markers)."""
+def refresh_chart(state: AppState, window) -> np.ndarray | None:
+    """Redraw R-t chart with per-frame quality coloring.
+
+    Returns
+    -------
+    np.ndarray or None
+        Quality scores with full-frame indexing (length == len(state.radius)).
+        Frames with radius <= 0 have score 0.0.  None if no radius data.
+    """
     if state.radius is not None:
         frames = np.arange(1, len(state.radius) + 1)
-        window.radius_chart.plot_all(frames, state.radius)
+        scores = compute_all_quality_scores(
+            state.radius, state.circle_fit_par, state.circle_xy,
+            state.gridx, state.gridy,
+        )
+        window.radius_chart.plot_all(frames, state.radius, scores)
+        return scores
+    return None
 
 
 def redraw_original(state: AppState, window) -> None:

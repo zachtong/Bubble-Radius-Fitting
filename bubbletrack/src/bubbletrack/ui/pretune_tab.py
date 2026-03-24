@@ -22,7 +22,7 @@ class PreTuneTab(QWidget):
     edges_changed = pyqtSignal()
     filters_changed = pyqtSignal()
     fit_clicked = pyqtSignal()
-    select_roi_clicked = pyqtSignal()
+    autotune_clicked = pyqtSignal()
     frame_selected = pyqtSignal(int)  # 0-indexed frame number
 
     def __init__(self, parent: QWidget | None = None):
@@ -46,26 +46,6 @@ class PreTuneTab(QWidget):
         frame_row.addWidget(self._frame_total_label)
         frame_row.addStretch()
         layout.addLayout(frame_row)
-
-        # -- ROI section --
-        roi_group = QGroupBox("Region of Interest")
-        roi_vbox = QVBoxLayout(roi_group)
-        roi_vbox.setSpacing(6)
-
-        self._select_roi_btn = QPushButton("Select ROI")
-        self._select_roi_btn.setObjectName("secondaryBtn")
-        self._select_roi_btn.clicked.connect(self.select_roi_clicked)
-        roi_vbox.addWidget(self._select_roi_btn)
-
-        self._roi_label = QLabel("ROI: full image")
-        self._roi_label.setObjectName("dimText")
-        roi_vbox.addWidget(self._roi_label)
-
-        layout.addWidget(roi_group)
-
-        # Internal ROI storage
-        self._gridx: tuple[int, int] = (1, 99999)
-        self._gridy: tuple[int, int] = (1, 99999)
 
         # -- Threshold slider --
         self._threshold = SliderInput("Threshold", 0, 100, 50, 1, 0)
@@ -170,19 +150,25 @@ class PreTuneTab(QWidget):
         self._fit_btn.clicked.connect(self.fit_clicked)
         layout.addWidget(self._fit_btn)
 
+        # -- Auto-Tune button --
+        self._autotune_btn = QPushButton("Auto Tune")
+        self._autotune_btn.setToolTip(
+            "Automatically find optimal Threshold and Removing Factor\n"
+            "by testing multiple combinations on the current frame."
+        )
+        self._autotune_btn.clicked.connect(self.autotune_clicked)
+        layout.addWidget(self._autotune_btn)
+
+        # -- Quality display --
+        self._quality_label = QLabel("")
+        self._quality_label.setObjectName("qualityLabel")
+        self._quality_label.setWordWrap(True)
+        self._quality_label.hide()
+        layout.addWidget(self._quality_label)
+
         layout.addStretch()
 
     # -- Public getters --
-    def get_roi(self) -> tuple[tuple[int, int], tuple[int, int]]:
-        """Return (gridx, gridy) 1-indexed."""
-        return self._gridx, self._gridy
-
-    def set_roi(self, gridx: tuple[int, int], gridy: tuple[int, int]):
-        self._gridx = gridx
-        self._gridy = gridy
-        self._roi_label.setText(
-            f"X: {gridy[0]}–{gridy[1]}  Y: {gridx[0]}–{gridx[1]}"
-        )
 
     def set_frame_range(self, total: int):
         """Set the max frame number for the frame selector."""
@@ -199,10 +185,19 @@ class PreTuneTab(QWidget):
         return self._threshold.value() / 100.0
 
     def set_threshold(self, v: float):
+        """Set threshold without emitting signals."""
+        self._threshold.blockSignals(True)
         self._threshold.set_value(v * 100)
+        self._threshold.blockSignals(False)
 
     def get_removing_factor_slider(self) -> int:
         return int(self._removing_factor.value())
+
+    def set_removing_factor(self, v: int):
+        """Set removing factor without emitting signals."""
+        self._removing_factor.blockSignals(True)
+        self._removing_factor.set_value(v)
+        self._removing_factor.blockSignals(False)
 
     def get_edge_flags(self) -> list[bool]:
         return [cb.isChecked() for cb in self._edge_checks]
@@ -269,3 +264,29 @@ class PreTuneTab(QWidget):
                 slider.set_value(v if v > 0 else slider._default, enabled=v > 0)
 
         self.filters_changed.emit()
+
+    # -- Quality display --
+
+    def show_quality(self, n_pts: int, rms: float, score_pct: int) -> None:
+        """Show fit quality metrics below the buttons."""
+        if score_pct >= 70:
+            color = "#10b981"
+        elif score_pct >= 40:
+            color = "#f59e0b"
+        else:
+            color = "#ef4444"
+        self._quality_label.setText(
+            f'<span style="color:#a1a1aa;">Edge pts:</span> {n_pts} &nbsp; '
+            f'<span style="color:#a1a1aa;">RMS:</span> {rms:.1f} px &nbsp; '
+            f'<span style="color:#a1a1aa;">Confidence:</span> '
+            f'<span style="color:{color};">{score_pct}%</span>'
+        )
+        self._quality_label.show()
+
+    def hide_quality(self) -> None:
+        self._quality_label.hide()
+
+    def set_autotune_enabled(self, enabled: bool) -> None:
+        """Enable/disable the auto-tune button (during search)."""
+        self._autotune_btn.setEnabled(enabled)
+        self._autotune_btn.setText("Searching..." if not enabled else "Auto Tune")

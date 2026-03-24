@@ -24,6 +24,7 @@ class MainWindow(QMainWindow):
     # Session persistence signals (handled by the controller)
     save_session_requested = pyqtSignal()
     load_session_requested = pyqtSignal()
+    compare_mode_changed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -128,6 +129,7 @@ class MainWindow(QMainWindow):
         else:
             # Overlay & Wipe show a single combined image
             self.binary_panel.setVisible(False)
+        self.compare_mode_changed.emit(mode_value)
 
     def _toggle_sidebar(self):
         visible = self.left_panel.isVisible()

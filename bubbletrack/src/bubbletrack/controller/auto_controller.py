@@ -8,15 +8,18 @@ from pathlib import Path
 
 import numpy as np
 from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+
+from bubbletrack.ui.batch_config_dialog import BatchConfigDialog
 
 from bubbletrack.controller.base import BaseController
+from bubbletrack.controller.batch_folder_worker import BatchFolderWorker
 from bubbletrack.controller.display_mixin import display_frame, refresh_chart
 from bubbletrack.controller.worker import BatchWorker
 from bubbletrack.event_bus import EventBus
 from bubbletrack.model.cache import ImageCache
-from bubbletrack.model.anomaly import detect_anomalies
 from bubbletrack.model.circle_fit import circle_fit_taubin
-from bubbletrack.model.constants import AUTO_DISPLAY_THROTTLE_MS
+from bubbletrack.model.constants import AUTO_DISPLAY_THROTTLE_MS, QUALITY_WARN_THRESHOLD
 from bubbletrack.model.conventions import frame_to_display
 from bubbletrack.model.export import export_r_data
 from bubbletrack.model.image_io import load_and_normalize
@@ -34,6 +37,7 @@ class AutoController(BaseController):
                  get_max_radius, cache: ImageCache | None = None) -> None:
         super().__init__(bus, get_state, set_state, window)
         self._worker: BatchWorker | None = None
+        self._batch_worker: BatchFolderWorker | None = None
         self._auto_last_display: float = 0.0
         self._auto_start_time: float = 0.0
         self._get_max_radius = get_max_radius
@@ -85,6 +89,9 @@ class AutoController(BaseController):
         if self._worker:
             self._worker.request_stop()
             self.w.header.set_status("Stopping...", "#f59e0b")
+        if self._batch_worker:
+            self._batch_worker.request_stop()
+            self.w.header.set_status("Stopping batch...", "#f59e0b")
 
     def on_auto_clear(self) -> None:
         if self.state.images:
@@ -175,9 +182,11 @@ class AutoController(BaseController):
         if binary_roi is not None:
             self.w.binary_panel.set_image(binary_roi)
 
-        # Update chart periodically
-        if radius > 0:
-            refresh_chart(self.state, self.w)
+        # Update chart periodically (skip quality scoring for speed;
+        # quality coloring is applied once in _on_auto_finished)
+        if radius > 0 and self.state.radius is not None:
+            frames = np.arange(1, len(self.state.radius) + 1)
+            self.w.radius_chart.plot_all(frames, self.state.radius)
 
     def _on_auto_finished(self) -> None:
         self.w.left_panel.automatic_tab.set_running(False)
@@ -187,17 +196,103 @@ class AutoController(BaseController):
             self.state, self.w, self.state.image_no, self._set_state,
             self._cache,
         )
-        # Refresh chart with all data and run anomaly detection
-        if self.state.radius is not None:
-            frames = np.arange(1, len(self.state.radius) + 1)
-            self.w.radius_chart.plot_all(frames, self.state.radius)
-
-            anomaly_mask = detect_anomalies(self.state.radius)
-            self.w.radius_chart.mark_anomalies(frames, self.state.radius, anomaly_mask)
-            anomaly_count = int(anomaly_mask.sum())
-            if anomaly_count > 0:
+        # Refresh chart with quality-based coloring
+        scores = refresh_chart(self.state, self.w)
+        if scores is not None:
+            valid = self.state.radius > 0
+            poor_count = int(np.sum(valid & (scores < QUALITY_WARN_THRESHOLD)))
+            if poor_count > 0:
                 self.w.header.set_status(
-                    f"Done — {anomaly_count} anomalies detected", "#f59e0b",
+                    f"Done — {poor_count} unreliable fits detected", "#f59e0b",
                 )
-            logger.info("Anomaly detection: %d / %d frames flagged",
-                        anomaly_count, len(self.state.radius))
+            logger.info("Fit quality: %d / %d valid fits below threshold",
+                        poor_count, int(valid.sum()))
+
+    # ------------------------------------------------------------------ #
+    #  Batch multi-folder processing
+    # ------------------------------------------------------------------ #
+
+    def on_batch_folders(self) -> None:
+        """Prompt user for a parent directory and process all experiment folders."""
+        root = QFileDialog.getExistingDirectory(
+            self.w, "Select Parent Directory Containing Experiment Folders",
+        )
+        if not root:
+            return
+
+        # Scan for experiment subfolders
+        from bubbletrack.model.batch_experiments import find_experiment_folders
+        folders = find_experiment_folders(root)
+        if not folders:
+            QMessageBox.information(
+                self.w, "No Experiments Found",
+                f"No image folders found under:\n{root}\n\n"
+                "Each subfolder must contain image files (TIFF, PNG, JPG, BMP).",
+            )
+            return
+
+        # Read default physical params from PostProcessing panel
+        pp = self.w.left_panel.post_processing
+        dlg = BatchConfigDialog(
+            folders,
+            default_fps=pp.get_fps(),
+            default_um2px=pp.get_scale(),
+            default_fit_length=pp.get_fit_length(),
+            parent=self.w,
+        )
+        if dlg.exec() != BatchConfigDialog.DialogCode.Accepted:
+            return
+
+        cfg = dlg.get_config()
+
+        at = self.w.left_panel.automatic_tab
+        at.set_batch_running(True)
+        at.set_batch_status(f"Starting batch: {len(cfg.folders)} folders...")
+        self.w.header.set_status("Batch processing...", "#f59e0b")
+
+        self._batch_worker = BatchFolderWorker(
+            folders=cfg.folders,
+            sensitivity=self.state.img_thr,
+            gridx=self.state.gridx,
+            gridy=self.state.gridy,
+            removing_factor_slider=self.state.removing_factor,
+            bubble_cross_edges=self.state.bubble_cross_edges,
+            removing_obj_radius=self.state.removing_obj_radius,
+            gaussian_sigma=self.state.gaussian_sigma,
+            clahe_clip=self.state.clahe_clip,
+            closing_radius=self.state.closing_radius,
+            opening_radius=self.state.opening_radius,
+            max_radius=self._get_max_radius(),
+            export_physical=cfg.export_physical,
+            fps=cfg.fps,
+            um2px=cfg.um2px,
+            rmax_fit_length=cfg.rmax_fit_length,
+        )
+        self._batch_worker.folder_started.connect(self._on_batch_folder_started)
+        self._batch_worker.frame_progress.connect(self._on_batch_frame_progress)
+        self._batch_worker.folder_done.connect(self._on_batch_folder_done)
+        self._batch_worker.all_done.connect(self._on_batch_all_done)
+        self._batch_worker.start()
+
+    def _on_batch_folder_started(self, idx: int, total: int, name: str) -> None:
+        at = self.w.left_panel.automatic_tab
+        at.set_batch_status(f"Folder {idx}/{total}: {name}")
+        self.w.header.set_status(f"Batch: {name} ({idx}/{total})", "#f59e0b")
+
+    def _on_batch_frame_progress(self, done: int, total: int) -> None:
+        self.w.left_panel.automatic_tab.set_batch_progress(done, total)
+
+    def _on_batch_folder_done(self, name: str, success: bool, msg: str) -> None:
+        status = "✓" if success else "✗"
+        logger.info("Batch folder %s: %s — %s", name, status, msg)
+
+    def _on_batch_all_done(self, folders_ok: int, total_fitted: int) -> None:
+        at = self.w.left_panel.automatic_tab
+        at.set_batch_running(False)
+        at.set_batch_status(
+            f"Complete: {folders_ok} folder(s), {total_fitted} frames fitted"
+        )
+        self.w.header.set_status(
+            f"Batch done: {folders_ok} folders, {total_fitted} fitted", "#10b981",
+        )
+        self._batch_worker = None

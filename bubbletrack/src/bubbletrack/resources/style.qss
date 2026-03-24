@@ -9,8 +9,30 @@
     color: #e4e4e7;
 }
 
+QWidget {
+    background: #0f1117;
+}
+
 QMainWindow {
     background: #0f1117;
+}
+
+/* ---------- System dialogs (QFileDialog internals) ---------- */
+QTreeView, QListView, QHeaderView {
+    background: #1a1b23;
+    color: #e4e4e7;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    selection-background-color: rgba(99, 102, 241, 0.15);
+    selection-color: #e4e4e7;
+}
+QTreeView::item:hover, QListView::item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+QHeaderView::section {
+    background: #13141b;
+    color: #a1a1aa;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 4px 8px;
 }
 
 /* ---------- Dark bars (header / status) ---------- */
@@ -52,6 +74,9 @@ QWidget#StatusBar QLabel {
 QWidget#LeftPanel {
     background: #13141b;
     border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+QWidget#LeftPanelContent {
+    background: #13141b;
 }
 
 /* ---------- Cards ---------- */
@@ -95,6 +120,7 @@ QPushButton#secondaryBtn {
     background: #1a1b23;
     color: #a1a1aa;
     border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 4px 6px;
 }
 QPushButton#secondaryBtn:hover {
     background: rgba(255, 255, 255, 0.06);
@@ -146,22 +172,7 @@ QSpinBox::up-button, QDoubleSpinBox::up-button,
 QSpinBox::down-button, QDoubleSpinBox::down-button {
     background: transparent;
     border: none;
-}
-QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
-    image: none;
-    width: 7px;
-    height: 7px;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-bottom: 5px solid #a1a1aa;
-}
-QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
-    image: none;
-    width: 7px;
-    height: 7px;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid #a1a1aa;
+    width: 16px;
 }
 
 /* ---------- Combo boxes ---------- */
@@ -180,14 +191,7 @@ QComboBox::drop-down {
     border: none;
     width: 20px;
 }
-QComboBox::down-arrow {
-    image: none;
-    width: 7px;
-    height: 7px;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid #a1a1aa;
-}
+/* Let Fusion engine render native arrow via QPalette ButtonText */
 QComboBox QAbstractItemView {
     background: #1a1b23;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -294,16 +298,17 @@ QLabel#dimText {
 
 /* ---------- Collapsible header ---------- */
 QPushButton#collapseToggle {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.03);
     color: #a1a1aa;
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 0;
+    border-radius: 6px 6px 0 0;
     text-align: left;
     padding: 8px 4px;
     font-weight: bold;
 }
 QPushButton#collapseToggle:hover {
+    background: rgba(255, 255, 255, 0.06);
     color: #e4e4e7;
 }
 
@@ -352,6 +357,16 @@ QToolTip {
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 4px;
     padding: 4px 8px;
+}
+
+/* ---------- Quality label ---------- */
+QLabel#qualityLabel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: #a1a1aa;
 }
 
 /* ---------- Dialog ---------- */

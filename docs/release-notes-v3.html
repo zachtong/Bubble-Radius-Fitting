@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BubbleTrack v3 — Release Notes</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #13141b;
+    --card: #16171f;
+    --border: rgba(255,255,255,0.06);
+    --text: #e4e4e7;
+    --dim: #a1a1aa;
+    --muted: #71717a;
+    --indigo: #6366f1;
+    --indigo-light: #818cf8;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Segoe UI", "Inter", -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    padding: 80px 24px 60px;
+    background: linear-gradient(180deg, #0c0d12 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(99,102,241,0.12);
+    color: var(--indigo-light);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 100px;
+    border: 1px solid rgba(99,102,241,0.25);
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #e4e4e7, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--dim);
+    font-size: 18px;
+    max-width: 640px;
+    margin: 0 auto 32px;
+  }
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-number {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--indigo-light);
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── Section ── */
+  .section {
+    padding: 64px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .section:last-child { border-bottom: none; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .section-icon.indigo { background: rgba(99,102,241,0.12); }
+  .section-icon.green  { background: rgba(16,185,129,0.12); }
+  .section-icon.amber  { background: rgba(245,158,11,0.12); }
+  .section-icon.blue   { background: rgba(59,130,246,0.12); }
+  .section-icon.red    { background: rgba(239,68,68,0.12); }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── Feature grid ── */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 16px;
+  }
+
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .feature-card:hover {
+    border-color: rgba(99,102,241,0.25);
+    transform: translateY(-2px);
+  }
+
+  .feature-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .feature-card p {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.55;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+  }
+  .tag.new      { background: rgba(16,185,129,0.15); color: var(--green); }
+  .tag.improved { background: rgba(99,102,241,0.15); color: var(--indigo-light); }
+  .tag.perf     { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .tag.fix      { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  /* ── Comparison table ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .compare-table th {
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    padding: 14px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 12px 18px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .compare-table .old { color: var(--muted); }
+  .compare-table .new-val { color: var(--green); font-weight: 600; }
+  .compare-table .label-col { color: var(--dim); font-weight: 500; }
+
+  /* ── Architecture diagram ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .arch-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 10px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .arch-box.highlight {
+    border-color: rgba(99,102,241,0.3);
+    background: rgba(99,102,241,0.06);
+  }
+  .arch-box small {
+    display: block;
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 4px;
+  }
+
+  .arch-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 20px;
+    padding: 8px 0;
+  }
+
+  .arch-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .arch-row .arch-box { flex: 1; }
+  .arch-row .arrow { color: var(--muted); font-size: 18px; flex-shrink: 0; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border);
+    border-radius: 1px;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -24px;
+    top: 7px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--indigo);
+    border: 2px solid var(--bg);
+  }
+  .timeline-item h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .timeline-item p {
+    font-size: 13px;
+    color: var(--dim);
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .footer a {
+    color: var(--indigo-light);
+    text-decoration: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 32px; }
+    .hero-stats { gap: 24px; }
+    .stat-number { font-size: 28px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .arch-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ HERO ════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">Major Release</div>
+  <h1>BubbleTrack v3</h1>
+  <p>
+    High-speed camera bubble radius fitting tool, completely rewritten with
+    modern architecture, interactive visualization, and intelligent automation.
+  </p>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-number">39</div>
+      <div class="stat-label">Commits</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">71</div>
+      <div class="stat-label">Files Changed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">+5,876</div>
+      <div class="stat-label">Net Lines Added</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">22</div>
+      <div class="stat-label">New Features</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════ UI / UX ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon indigo">&#x1F3A8;</div>
+    <div>
+      <div class="section-title">User Interface</div>
+      <div class="section-subtitle">Complete visual redesign with modern dark theme</div>
+    </div>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Dark Theme UI</h3>
+      <p>SAM2 Studio design system with slate/indigo color palette, rounded cards, and consistent visual language across all panels.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Image Comparison Modes</h3>
+      <p>Three viewing modes: Side-by-Side (default), Overlay (green-tinted binary on grayscale), and Wipe (split-screen with red divider).</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Interactive R-t Chart</h3>
+      <p>pyqtgraph replaces Matplotlib for 10-100x faster rendering. Supports zoom, pan, hover tooltips, click-to-jump, and right-click context menu.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Frame Playback</h3>
+      <p>Play/Pause button with adjustable FPS (1-60), automatic stop at end, wrap-around from end, and spacebar shortcut.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Keyboard Shortcuts</h3>
+      <p>Arrow keys for frame navigation, +/- for zoom, Ctrl+Z for undo, Space for play/pause. Configurable shortcut system.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Welcome Dialog</h3>
+      <p>First-launch 3-step workflow guide: Load images &rarr; Tune parameters &rarr; Run automatic fitting.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Fit Quality Visualization</h3>
+      <p>Per-frame quality scoring with color-coded markers: green (reliable), amber (marginal), red (poor). Weighted geometric mean formula.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag improved">Improved</span> ROI Selection</h3>
+      <p>ROI button moved to image panel toolbar for faster access. Coordinate display always visible. Drag-to-select with visual feedback.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ CORE FEATURES ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon green">&#x2699;</div>
+    <div>
+      <div class="section-title">Core Features</div>
+      <div class="section-subtitle">Powerful new capabilities for bubble analysis</div>
+    </div>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Auto-Tune</h3>
+      <p>Automatic search for optimal Threshold and Removing Factor via coarse-to-fine grid search. 9&times;8 coarse grid &rarr; 5&times;5 fine grid around Top-5 candidates. ~192 evaluations with binary ROI caching.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Video File Support</h3>
+      <p>Direct import of AVI, MP4, MOV, MKV files. Frame-accurate seeking with OpenCV VideoCapture. Auto-detects FPS for R(t) export.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Advanced Filters</h3>
+      <p>Collapsible panel with Gaussian Blur, CLAHE contrast enhancement, Morphological Close/Open. Each independently togglable with real-time preview.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Background Subtraction</h3>
+      <p>NLM (Non-Local Means) denoising preprocessing for noisy high-speed camera footage.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Right-Click Edit</h3>
+      <p>Right-click any point on the R-t chart to delete or refit individual frames. No need to re-run the entire batch.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Manual Undo/Redo</h3>
+      <p>Full undo stack for manual edge-point selection. Ctrl+Z to remove the last placed point.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Batch Multi-Folder</h3>
+      <p>Queue and process multiple experiment folders in sequence. Automatic result export for each folder.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> CLI Mode</h3>
+      <p>Headless command-line interface for scripted batch processing. Specify image folder, parameters, and output path without opening the GUI.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ DATA & EXPORT ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon blue">&#x1F4BE;</div>
+    <div>
+      <div class="section-title">Data Management</div>
+      <div class="section-subtitle">Session persistence, presets, and multi-format export</div>
+    </div>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Session Save/Load</h3>
+      <p>.brt project files preserve all state: parameters, results, ROI, and folder path. Resume work exactly where you left off.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Parameter Presets</h3>
+      <p>Save and load filter parameter configurations as JSON files. Share presets across experiments or team members.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Auto-Persist Config</h3>
+      <p>User parameters automatically saved to config.json and restored on next launch. No manual setup needed.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Multi-Format Export</h3>
+      <p>Export R(t) data to MAT (MATLAB), CSV, and Excel formats. Smart default paths with timestamp.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> PDF Report</h3>
+      <p>One-page PDF report with processing parameters, statistical summary, and R-t chart. Ready for lab notebooks.</p>
+    </div>
+    <div class="feature-card">
+      <h3><span class="tag new">New</span> Incremental Auto-Save</h3>
+      <p>Results automatically saved every 50 frames during batch processing. Crash-proof: no work lost on unexpected shutdown.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ PERFORMANCE ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon amber">&#x26A1;</div>
+    <div>
+      <div class="section-title">Performance</div>
+      <div class="section-subtitle">Faster processing, smarter caching</div>
+    </div>
+  </div>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width:30%;">Metric</th>
+        <th style="width:35%;">v2 (Previous)</th>
+        <th style="width:35%;">v3 (Current)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="label-col">Batch Processing</td>
+        <td class="old">Single-threaded</td>
+        <td class="new-val">4-worker multiprocessing</td>
+      </tr>
+      <tr>
+        <td class="label-col">R-t Chart Rendering</td>
+        <td class="old">Matplotlib (~100ms/update)</td>
+        <td class="new-val">pyqtgraph (~1ms/update)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Frame Navigation</td>
+        <td class="old">Load from disk every time</td>
+        <td class="new-val">LRU cache (200 MB limit)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Preview Refresh</td>
+        <td class="old">Full pipeline on every slider change</td>
+        <td class="new-val">Binary ROI cache + debounce (50ms)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Batch UI Updates</td>
+        <td class="old">Every frame</td>
+        <td class="new-val">Throttled (150ms interval)</td>
+      </tr>
+      <tr>
+        <td class="label-col">EXE Size</td>
+        <td class="old">~180 MB</td>
+        <td class="new-val">Slimmed (unused Qt/Python modules excluded)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════ ARCHITECTURE ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon indigo">&#x1F3D7;</div>
+    <div>
+      <div class="section-title">Architecture</div>
+      <div class="section-subtitle">Clean separation of concerns with immutable state</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 28px;">
+    <h4 style="color:var(--dim); font-size:13px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+      v2 &mdash; Monolithic Controller
+    </h4>
+    <div class="arch-row">
+      <div class="arch-box" style="flex:2;">controller.py<small>~800 lines, all logic</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="arch-box">UI widgets</div>
+    </div>
+  </div>
+
+  <div>
+    <h4 style="color:var(--indigo-light); font-size:13px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+      v3 &mdash; Domain Sub-Controllers + EventBus
+    </h4>
+    <div class="arch-grid">
+      <div class="arch-box highlight">FileController<small>Folder, video, navigation</small></div>
+      <div class="arch-box highlight">PretuneController<small>Threshold, ROI, filters</small></div>
+      <div class="arch-box highlight">ManualController<small>Point selection, undo</small></div>
+      <div class="arch-box highlight">AutoController<small>Batch fitting, worker</small></div>
+      <div class="arch-box highlight">ExportController<small>CSV, MAT, PDF export</small></div>
+    </div>
+    <div class="arch-arrow">&darr; EventBus &darr;</div>
+    <div class="arch-row">
+      <div class="arch-box">AppState<small>Frozen dataclass</small></div>
+      <div class="arrow">&harr;</div>
+      <div class="arch-box">update_state()<small>Immutable updates</small></div>
+      <div class="arrow">&harr;</div>
+      <div class="arch-box">UI Layer<small>Pure display</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ BUG FIXES ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon red">&#x1F6E1;</div>
+    <div>
+      <div class="section-title">Reliability &amp; Bug Fixes</div>
+      <div class="section-subtitle">Hardened error handling and input validation</div>
+    </div>
+  </div>
+  <div class="timeline">
+    <div class="timeline-item">
+      <h4>ROI Bounds Clamping</h4>
+      <p>ROI coordinates are now clamped to actual image dimensions, preventing array-out-of-bounds errors.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Thread Safety</h4>
+      <p>Result array updates are guaranteed to run on the main thread via Qt's queued signal/slot mechanism. QThread signal naming fixed to prevent crashes on rapid re-trigger.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Per-Frame Error Recovery</h4>
+      <p>Batch worker continues processing even if individual frames fail (corrupted file, detection failure). Errors are logged without aborting the run.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Manual Point Deduplication</h4>
+      <p>Points placed within 5px of an existing point are automatically rejected to prevent near-duplicates that destabilize the Taubin fitter.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Overlay/Wipe Mode Fix</h4>
+      <p>Binary ROI (cropped to ROI dimensions) is now embedded into a full-size canvas before compositing with the original image, preventing shape mismatch errors.</p>
+    </div>
+    <div class="timeline-item">
+      <h4>Input Validation</h4>
+      <p>Folder path validation, symlink skipping, MAT file structure verification (safe_loadmat), and invalid-frame filtering before Rmax quadratic fit.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ AUTO-TUNE DETAIL ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon green">&#x1F50D;</div>
+    <div>
+      <div class="section-title">Auto-Tune Search Strategy</div>
+      <div class="section-subtitle">Two-phase coarse-to-fine grid search with quality scoring</div>
+    </div>
+  </div>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Phase 1 — Coarse</th>
+        <th>Phase 2 — Fine</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="label-col">Threshold Grid</td>
+        <td>0.10 &ndash; 0.90, step 0.10 (9 points)</td>
+        <td>&plusmn;0.04 around best, step 0.02 (5 points)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Removing Factor Grid</td>
+        <td>20, 35, 50, 65, 75, 85, 92, 98 (8 points)</td>
+        <td>&plusmn;6 around best, step 3 (5 points)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Combinations</td>
+        <td>72</td>
+        <td>~120 (5 candidates &times; 25 grid)</td>
+      </tr>
+      <tr>
+        <td class="label-col">Top-K Refinement</td>
+        <td colspan="2" style="text-align:center;">Best 5 coarse results advance to fine phase</td>
+      </tr>
+      <tr>
+        <td class="label-col">Scoring</td>
+        <td colspan="2" style="text-align:center;">
+          Weighted geometric mean: density<sup>0.25</sup> &times; RMS<sup>0.30</sup> &times; coverage<sup>0.30</sup> &times; plausibility<sup>0.15</sup>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════════════ QUALITY SCORING ════════════════════ -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-icon indigo">&#x1F4CA;</div>
+    <div>
+      <div class="section-title">Fit Quality Scoring</div>
+      <div class="section-subtitle">Four-dimensional weighted geometric mean</div>
+    </div>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h3 style="color:#818cf8;">Edge Density <span style="color:var(--muted);font-weight:400;">(weight 25%)</span></h3>
+      <p>Number of detected boundary pixels per pixel of fitted circumference. Target: 0.6 points/px (~1 point every 1.7 px).</p>
+    </div>
+    <div class="feature-card">
+      <h3 style="color:#818cf8;">RMS Residual <span style="color:var(--muted);font-weight:400;">(weight 30%)</span></h3>
+      <p>Root-mean-square distance of edge points from the fitted circle, normalized by radius. Penalized above 15% of radius.</p>
+    </div>
+    <div class="feature-card">
+      <h3 style="color:#818cf8;">Sector Coverage <span style="color:var(--muted);font-weight:400;">(weight 30%)</span></h3>
+      <p>Fraction of 8 angular sectors (45&deg; each) containing at least one edge point. Full coverage = 1.0.</p>
+    </div>
+    <div class="feature-card">
+      <h3 style="color:#818cf8;">Radius Plausibility <span style="color:var(--muted);font-weight:400;">(weight 15%)</span></h3>
+      <p>Binary check: radius must be 3&ndash;85% of ROI short side. Outside range &rarr; score drops by ~50%.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:24px; display:flex; gap:24px; justify-content:center; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#10b981;"></span>
+      <span style="font-size:13px;color:var(--dim);">Good fit &ge; 65%</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#f59e0b;"></span>
+      <span style="font-size:13px;color:var(--dim);">Fair fit 35&ndash;65%</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#ef4444;"></span>
+      <span style="font-size:13px;color:var(--dim);">Poor fit &lt; 35%</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.container -->
+
+<div class="footer">
+  BubbleTrack v3 &mdash; Built with PyQt6, NumPy, OpenCV, pyqtgraph<br>
+  <a href="https://github.com/zachtong/Bubble-Radius-Fitting" target="_blank">github.com/zachtong/Bubble-Radius-Fitting</a>
+</div>
+
+</body>
+</html>

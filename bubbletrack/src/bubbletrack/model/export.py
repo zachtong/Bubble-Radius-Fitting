@@ -118,36 +118,35 @@ def export_rof_t_data(
     rmax_val = valid_R[rmax_valid_pos]
     rmax_loc = int(valid_indices[rmax_valid_pos]) + 1  # 1-indexed
 
-    # Boundary checks
-    if rmax_loc - half < 1:
-        return False, "Rmax_Fit_Length exceeds data range (left boundary)!"
-    if rmax_loc + half > len(R):
-        return False, "Rmax_Fit_Length exceeds data range (right boundary)!"
+    # Clamp fit window to data range (fallback for boundary cases)
+    win_left = max(1, rmax_loc - half)
+    win_right = min(len(R), rmax_loc + half)
 
     # Build fit window, using only valid (radius > 0, non-NaN) frames
-    window_indices_1based = np.arange(rmax_loc - half, rmax_loc + half + 1)
+    window_indices_1based = np.arange(win_left, win_right + 1)
     window_mask = valid_mask[window_indices_1based - 1]
     fit_indices = window_indices_1based[window_mask]
     fit_vals = R[fit_indices - 1]  # back to 0-indexed for array access
 
-    if len(fit_indices) < 3:
-        return False, "Not enough valid frames in Rmax fit window (need >= 3)"
-
-    # Quadratic fit
-    try:
-        p = np.polyfit(fit_indices, fit_vals, 2)
-        if p[0] >= 0:
-            # Not concave — use discrete max
-            rmax_all = rmax_val
-        else:
-            fit_time_loc = -p[1] / (2.0 * p[0])
-            fit_rmax = (4 * p[0] * p[2] - p[1] ** 2) / (4 * p[0])
-            if fit_time_loc < 1 or fit_time_loc > len(R):
+    # Quadratic fit requires >= 3 points; fall back to discrete max otherwise
+    if len(fit_indices) >= 3:
+        try:
+            p = np.polyfit(fit_indices, fit_vals, 2)
+            if p[0] >= 0:
+                # Not concave — use discrete max
                 rmax_all = rmax_val
             else:
-                rmax_loc = fit_time_loc
-                rmax_all = fit_rmax
-    except Exception:
+                fit_time_loc = -p[1] / (2.0 * p[0])
+                fit_rmax = (4 * p[0] * p[2] - p[1] ** 2) / (4 * p[0])
+                if fit_time_loc < 1 or fit_time_loc > len(R):
+                    rmax_all = rmax_val
+                else:
+                    rmax_loc = fit_time_loc
+                    rmax_all = fit_rmax
+        except Exception:
+            rmax_all = rmax_val
+    else:
+        # Too few points for quadratic fit — use discrete max
         rmax_all = rmax_val
 
     # Build output arrays — insert Rmax at the peak and shift time
