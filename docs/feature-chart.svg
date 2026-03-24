@@ -57,10 +57,10 @@
   <text x="269" y="97" font-family="system-ui, sans-serif" font-size="9" fill="#fafafa" text-anchor="middle">R = 82.4 px</text>
 
   <!-- Legend -->
-  <circle cx="290" y="228" cx="290" cy="240" r="3" fill="#10b981"/>
+  <circle cx="290" cy="240" r="3" fill="#10b981"/>
   <text x="298" y="243" font-family="system-ui, sans-serif" font-size="8" fill="#71717a">Good</text>
   <circle cx="330" cy="240" r="3" fill="#f59e0b"/>
   <text x="338" y="243" font-family="system-ui, sans-serif" font-size="8" fill="#71717a">Warning</text>
   <circle cx="378" cy="240" r="3" fill="#ef4444"/>
-  <text x="386" y="243" font-family="system-ui, sans-serif" font-size="8" fill="#71717a"/>
+  <text x="386" y="243" font-family="system-ui, sans-serif" font-size="8" fill="#71717a">Bad</text>
 </svg>
