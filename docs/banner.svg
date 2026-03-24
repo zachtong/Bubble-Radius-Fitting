@@ -72,6 +72,6 @@
 
   <!-- Tagline -->
   <text x="60" y="92" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="16" fill="#94a3b8">
-    High-speed camera bubble radius extraction &amp; fitting
+    Bubble radius extraction &amp; circle fitting from image sequences
   </text>
 </svg>

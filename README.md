@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  Desktop application for extracting bubble radius vs. time data from high-speed camera image sequences.<br/>
+  Desktop application for extracting bubble radius vs. time data from image sequences.<br/>
   Detects bubble boundaries via adaptive thresholding and morphological filtering, then fits circles using the Taubin algebraic method.
 </p>
 
@@ -41,40 +41,18 @@ Pre-built executables — no Python installation required:
 
 ## Features
 
-<table>
-<tr>
-<td width="50%">
+<p align="center">
+  <a href="docs/v3-highlights.html"><img src="https://img.shields.io/badge/See%20Full%20Feature%20Tour-6366f1?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xOCAxM3Y2YTIgMiAwIDAgMS0yIDJINWEyIDIgMCAwIDEtMi0yVjhhMiAyIDAgMCAxIDItMmg2Ii8+PHBvbHlsaW5lIHBvaW50cz0iMTUgMyAyMSAzIDIxIDkiLz48bGluZSB4MT0iMTAiIHkxPSIxNCIgeDI9IjIxIiB5Mj0iMyIvPjwvc3ZnPg==&logoColor=white" alt="Feature Tour"/></a>
+</p>
 
-**Analysis Modes**
-- Pre-tune with live ROI preview
-- Manual 3+ point circle fitting
-- Automatic batch processing
-- Multi-folder batch with shared parameters
-
-**Smart Detection**
-- Adaptive binarisation with auto-tune
-- Quality scoring for fit reliability
-- Anomaly detection (outlier, jump, NaN)
-- Max radius cap for false detection rejection
-
-</td>
-<td width="50%">
-
-**Interactive Visualization**
-- Side-by-side original / binary display
-- Zoom, pan, overlay & wipe comparison
-- R(t) scatter chart with click-to-jump
-- Right-click to delete or refit points
-
-**Export & Reporting**
-- `.mat` (R_data + RofT_data), CSV, Excel
-- Physical-unit conversion (um, us)
-- PDF report with parameters & chart
-- Session save/load (.brt files)
-
-</td>
-</tr>
-</table>
+<p align="center">
+  <img src="docs/feature-analysis.svg" width="48%" alt="Analysis"/>
+  <img src="docs/feature-chart.svg" width="48%" alt="Chart"/>
+</p>
+<p align="center">
+  <img src="docs/feature-batch.svg" width="48%" alt="Batch"/>
+  <img src="docs/feature-export.svg" width="48%" alt="Export"/>
+</p>
 
 ---
 

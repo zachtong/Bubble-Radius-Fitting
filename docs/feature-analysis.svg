@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="260" viewBox="0 0 420 260">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#111114"/>
+      <stop offset="100%" style="stop-color:#18181b"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="260" fill="url(#bg)" rx="12"/>
+  <rect x="0" y="0" width="420" height="3" fill="#6366f1" rx="1.5"/>
+
+  <!-- Title -->
+  <text x="24" y="36" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#6366f1" letter-spacing="1">ANALYSIS</text>
+  <text x="24" y="62" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#fafafa">Three Modes, One Workflow</text>
+
+  <!-- Mode tabs mock -->
+  <rect x="24" y="80" width="372" height="32" fill="#09090b" rx="6"/>
+  <rect x="28" y="84" width="116" height="24" fill="#6366f1" rx="4"/>
+  <text x="86" y="100" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">Pre-tune</text>
+  <text x="204" y="100" font-family="system-ui, sans-serif" font-size="11" font-weight="500" fill="#71717a" text-anchor="middle">Manual</text>
+  <text x="322" y="100" font-family="system-ui, sans-serif" font-size="11" font-weight="500" fill="#71717a" text-anchor="middle">Automatic</text>
+
+  <!-- ROI preview mock -->
+  <rect x="24" y="122" width="180" height="120" fill="#1a1b23" rx="8"/>
+  <rect x="44" y="138" width="140" height="88" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3" rx="2"/>
+  <circle cx="114" cy="182" r="30" fill="none" stroke="#ef4444" stroke-width="1.5"/>
+  <circle cx="114" cy="182" r="3" fill="#ef4444"/>
+  <text x="114" y="236" font-family="system-ui, sans-serif" font-size="9" fill="#71717a" text-anchor="middle">ROI + Circle Fit</text>
+
+  <!-- Sliders mock -->
+  <rect x="218" y="122" width="178" height="120" fill="#1a1b23" rx="8"/>
+  <text x="232" y="142" font-family="system-ui, sans-serif" font-size="10" fill="#a1a1aa">Threshold</text>
+  <rect x="232" y="148" width="120" height="4" fill="#27272a" rx="2"/>
+  <rect x="232" y="148" width="72" height="4" fill="#6366f1" rx="2"/>
+  <circle cx="304" cy="150" r="6" fill="#6366f1"/>
+  <text x="365" y="153" font-family="system-ui, sans-serif" font-size="10" fill="#fafafa" text-anchor="middle">39</text>
+
+  <text x="232" y="176" font-family="system-ui, sans-serif" font-size="10" fill="#a1a1aa">Removing Factor</text>
+  <rect x="232" y="182" width="120" height="4" fill="#27272a" rx="2"/>
+  <rect x="232" y="182" width="96" height="4" fill="#6366f1" rx="2"/>
+  <circle cx="328" cy="184" r="6" fill="#6366f1"/>
+  <text x="365" y="187" font-family="system-ui, sans-serif" font-size="10" fill="#fafafa" text-anchor="middle">81</text>
+
+  <rect x="232" y="204" width="150" height="28" fill="#6366f1" rx="6"/>
+  <text x="307" y="222" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">Fit Current Frame</text>
+</svg>
