@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Build BubbleTrack using a clean virtual environment.
-# Windows: produces dist/BubbleTrack.exe
-# macOS:   produces dist/BubbleTrack.app
+# Build BubbleTrack into a macOS .app bundle using a clean virtual environment.
 set -e
 
 BUILD_ENV=".build_env_mac"
 PYTHON=""
 
 echo "======================================"
-echo "  Building BubbleTrack"
+echo "  Building BubbleTrack for macOS"
 echo "======================================"
 echo ""
 
@@ -33,21 +31,15 @@ fi
 echo "Using $PYTHON ($($PYTHON --version))"
 
 # --- Create clean build environment ---
-if [ -f "$BUILD_ENV/bin/python" ] || [ -f "$BUILD_ENV/Scripts/python.exe" ]; then
+if [ -f "$BUILD_ENV/bin/python" ]; then
     echo "Reusing build environment at $BUILD_ENV"
 else
     echo "Creating clean build environment..."
     "$PYTHON" -m venv "$BUILD_ENV"
 fi
 
-# --- Determine venv paths ---
-if [ -f "$BUILD_ENV/bin/pip" ]; then
-    PIP="$BUILD_ENV/bin/pip"
-    PYINST="$BUILD_ENV/bin/pyinstaller"
-else
-    PIP="$BUILD_ENV/Scripts/pip"
-    PYINST="$BUILD_ENV/Scripts/pyinstaller"
-fi
+PIP="$BUILD_ENV/bin/pip"
+PYINST="$BUILD_ENV/bin/pyinstaller"
 
 # --- Install only required dependencies ---
 echo "Installing dependencies..."
@@ -61,13 +53,50 @@ ICON_ICNS="src/bubbletrack/resources/icon.icns"
 
 if [[ "$(uname)" == "Darwin" ]] && [[ ! -f "$ICON_ICNS" ]] && [[ -f "$ICON_ICO" ]]; then
     echo "Converting icon to .icns for macOS..."
-    ICONSET_DIR=$(mktemp -d)/icon.iconset
+    TMPDIR_ICON=$(mktemp -d)
+    ICONSET_DIR="$TMPDIR_ICON/icon.iconset"
     mkdir -p "$ICONSET_DIR"
-    for size in 16 32 64 128 256 512; do
-        sips -z $size $size "$ICON_ICO" --out "$ICONSET_DIR/icon_${size}x${size}.png" &>/dev/null || true
-    done
-    iconutil -c icns "$ICONSET_DIR/.." -o "$ICON_ICNS" 2>/dev/null || true
-    rm -rf "$(dirname "$ICONSET_DIR")"
+
+    # Convert .ico → intermediate PNG via Python (sips cannot read .ico)
+    ICON_PNG="$TMPDIR_ICON/icon_source.png"
+    "$BUILD_ENV/bin/python" -c "
+from PIL import Image
+img = Image.open('$ICON_ICO')
+img.save('$ICON_PNG')
+" 2>/dev/null || true
+
+    if [[ -f "$ICON_PNG" ]]; then
+        # Generate all required sizes including @2x Retina variants
+        for size in 16 32 128 256 512; do
+            sips -z $size $size "$ICON_PNG" --out "$ICONSET_DIR/icon_${size}x${size}.png" &>/dev/null || true
+        done
+        # @2x variants: 32(16@2x), 64(32@2x), 256(128@2x), 512(256@2x), 1024(512@2x)
+        for size in 32 64 256 512 1024; do
+            base=$((size / 2))
+            sips -z $size $size "$ICON_PNG" --out "$ICONSET_DIR/icon_${base}x${base}@2x.png" &>/dev/null || true
+        done
+        iconutil -c icns "$ICONSET_DIR" -o "$ICON_ICNS" 2>/dev/null || true
+    fi
+
+    rm -rf "$TMPDIR_ICON"
+
+    if [[ -f "$ICON_ICNS" ]]; then
+        echo "Icon converted successfully."
+    else
+        echo "Warning: Icon conversion failed, building without custom icon."
+    fi
+fi
+
+# --- Clean previous build ---
+if [[ -d "build/build_onefile" ]]; then
+    echo "Cleaning previous build..."
+    rm -rf build/build_onefile
+fi
+if [[ -d "dist/BubbleTrack.app" ]]; then
+    rm -rf dist/BubbleTrack.app
+fi
+if [[ -f "dist/BubbleTrack" ]]; then
+    rm -f dist/BubbleTrack
 fi
 
 # --- Build ---
@@ -75,22 +104,17 @@ echo "Running PyInstaller..."
 "$PYINST" build_onefile.spec --noconfirm
 
 echo ""
-if [[ "$(uname)" == "Darwin" ]]; then
-    if [[ -d "dist/BubbleTrack.app" ]]; then
-        echo "======================================"
-        echo "  Build successful!"
-        echo "  Output: dist/BubbleTrack.app"
-        echo "======================================"
-    else
-        echo "ERROR: Build failed."; exit 1
-    fi
+if [[ -d "dist/BubbleTrack.app" ]]; then
+    echo "======================================"
+    echo "  Build successful!"
+    echo "  Output: dist/BubbleTrack.app"
+    echo "======================================"
+elif [[ -f "dist/BubbleTrack" ]]; then
+    echo "======================================"
+    echo "  Build successful!"
+    echo "  Output: dist/BubbleTrack"
+    echo "======================================"
 else
-    if [[ -f "dist/BubbleTrack.exe" ]]; then
-        echo "======================================"
-        echo "  Build successful!"
-        echo "  Output: dist/BubbleTrack.exe"
-        echo "======================================"
-    else
-        echo "ERROR: Build failed."; exit 1
-    fi
+    echo "ERROR: Build failed. Check output above."
+    exit 1
 fi

@@ -36,6 +36,7 @@ a = Analysis(
         'bubbletrack.ui.image_compare',
         'bubbletrack.ui.welcome_dialog',
         'bubbletrack.ui.batch_config_dialog',
+        'bubbletrack.ui.batch_results_dialog',
         'bubbletrack.ui.pipeline_strip',
         # Controller
         'bubbletrack.controller.base',
@@ -69,6 +70,7 @@ a = Analysis(
         'bubbletrack.model.undo',
         'bubbletrack.model.autotune',
         'bubbletrack.model.quality',
+        'bubbletrack.model.batch_result',
         'bubbletrack.model.pipeline_inspect',
         # Core
         'bubbletrack.event_bus',
