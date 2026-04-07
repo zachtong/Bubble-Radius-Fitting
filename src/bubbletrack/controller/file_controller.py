@@ -62,7 +62,7 @@ class FileController(BaseController):
 
         # Update UI
         lp = self.w.left_panel
-        lp.image_source.set_info(f"{len(images)} images  |  {os.path.basename(images[0])}")
+        lp.image_source.set_folder_loaded(folder, len(images))
         self.w.original_panel.set_roi_text(self.state.gridx, self.state.gridy)
         lp.pretune_tab.set_frame_range(len(images))
         lp.manual_tab.set_frame_range(len(images))
@@ -126,10 +126,7 @@ class FileController(BaseController):
 
         # Update UI
         lp = self.w.left_panel
-        basename = os.path.basename(video_path)
-        lp.image_source.set_info(
-            f"{n} frames  |  {basename}  |  {reader.fps:.1f} fps"
-        )
+        lp.image_source.set_video_loaded(video_path, n, reader.fps)
         self.w.original_panel.set_roi_text(self.state.gridx, self.state.gridy)
         lp.pretune_tab.set_frame_range(n)
         lp.manual_tab.set_frame_range(n)

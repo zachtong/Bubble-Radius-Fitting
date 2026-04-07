@@ -1,69 +1,211 @@
-"""Image source panel — folder browser with file count."""
+"""Image source panel — dual drop-zone selector for folders and videos.
+
+Inspired by STAQ-DIC-GUI's ``_DropZone`` design
+(``staq-dic-python/src/staq_dic/gui/panels/left_sidebar.py:75-145``):
+each zone supports both a click gesture (opens a file dialog) and a drag-
+and-drop gesture (accepts ``QMimeData`` URLs).  Two zones are arranged
+side-by-side so the user can pick either an image folder or a video file
+without first toggling a mode.
+
+Loaded state is communicated via Qt's dynamic property mechanism
+(``setProperty("loaded", ...)`` + re-polish) so the QSS attribute selector
+``QWidget#dropZone[loaded="true"]`` can swap the border colour without
+runtime stylesheet rewriting.
+"""
 
 from __future__ import annotations
 
-from PyQt6.QtCore import pyqtSignal
+import os
+from pathlib import Path
+
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QMouseEvent
 from PyQt6.QtWidgets import (
-    QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout,
-    QWidget,
+    QFileDialog, QHBoxLayout, QLabel, QVBoxLayout, QWidget,
 )
+
+from bubbletrack.model.image_io import is_video_file
+
+
+class _DropZone(QWidget):
+    """A drop-and-click target for either a folder or a single file.
+
+    Emits ``path_selected(str)`` when the user picks a path via either
+    gesture.  Folder mode also accepts a dropped file by falling back to
+    the file's parent directory (matches STAQ-DIC behaviour).
+    """
+
+    path_selected = pyqtSignal(str)
+
+    def __init__(
+        self,
+        *,
+        mode: str,
+        icon: str,
+        prompt: str,
+        dialog_title: str,
+        dialog_filter: str = "",
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        if mode not in ("folder", "video"):
+            raise ValueError(
+                f"_DropZone mode must be 'folder' or 'video', got {mode!r}"
+            )
+        self._mode = mode
+        self._dialog_title = dialog_title
+        self._dialog_filter = dialog_filter
+        self._original_prompt = prompt
+
+        self.setObjectName("dropZone")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setAcceptDrops(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setProperty("loaded", False)
+        self.setMinimumHeight(80)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 10, 8, 10)
+        layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self._icon_label = QLabel(icon)
+        self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._icon_label.setStyleSheet(
+            "font-size: 22px; background: transparent; border: none;"
+        )
+        layout.addWidget(self._icon_label)
+
+        self._prompt_label = QLabel(prompt)
+        self._prompt_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._prompt_label.setWordWrap(True)
+        layout.addWidget(self._prompt_label)
+
+    # -- Public state API --
+
+    def set_loaded(self, summary_lines: list[str]) -> None:
+        """Replace the prompt text and switch to the loaded visual style."""
+        self._prompt_label.setText("\n".join(summary_lines))
+        self._set_loaded_property(True)
+
+    def reset(self) -> None:
+        """Restore the original prompt and clear the loaded visual style."""
+        self._prompt_label.setText(self._original_prompt)
+        self._set_loaded_property(False)
+
+    def _set_loaded_property(self, value: bool) -> None:
+        self.setProperty("loaded", value)
+        # Re-polish so the QSS [loaded="true"] selector takes effect
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
+
+    # -- Click gesture --
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mousePressEvent(event)
+            return
+        if self._mode == "folder":
+            path = QFileDialog.getExistingDirectory(self, self._dialog_title)
+        else:
+            path, _ = QFileDialog.getOpenFileName(
+                self, self._dialog_title, "", self._dialog_filter,
+            )
+        if path:
+            self.path_selected.emit(path)
+
+    # -- Drop gesture --
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        urls = event.mimeData().urls()
+        if not urls:
+            return
+        path = urls[0].toLocalFile()
+        if not path:
+            return
+
+        if self._mode == "folder":
+            if os.path.isdir(path):
+                self.path_selected.emit(path)
+            elif os.path.isfile(path):
+                # Fallback: use the file's parent directory
+                self.path_selected.emit(str(Path(path).parent))
+        else:  # video
+            if os.path.isfile(path) and is_video_file(path):
+                self.path_selected.emit(path)
 
 
 class ImageSource(QWidget):
-    """Folder/video selector that emits the chosen path."""
+    """Folder/video selector that emits the chosen path.
+
+    Public signals (preserved for backward compatibility with the
+    controller wiring):
+    - ``folder_selected(str)`` — emitted when an image folder is chosen
+    - ``video_selected(str)`` — emitted when a video file is chosen
+    """
 
     folder_selected = pyqtSignal(str)
     video_selected = pyqtSignal(str)
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 8)
         layout.setSpacing(6)
 
-        lbl = QLabel("Image Source")
-        lbl.setObjectName("sectionTitle")
-        layout.addWidget(lbl)
+        title = QLabel("Image Source")
+        title.setObjectName("sectionTitle")
+        layout.addWidget(title)
 
-        row = QHBoxLayout()
-        self._path_edit = QLineEdit()
-        self._path_edit.setPlaceholderText("Select image folder or video...")
-        self._path_edit.setReadOnly(True)
-        row.addWidget(self._path_edit, 1)
+        zones_row = QHBoxLayout()
+        zones_row.setContentsMargins(0, 0, 0, 0)
+        zones_row.setSpacing(8)
 
-        self._browse_btn = QPushButton("Folder")
-        self._browse_btn.setToolTip("Browse for image folder")
-        self._browse_btn.clicked.connect(self._browse)
-        row.addWidget(self._browse_btn)
-
-        self._browse_video_btn = QPushButton("Video")
-        self._browse_video_btn.setToolTip("Browse for video file (AVI, MP4, MOV, MKV)")
-        self._browse_video_btn.clicked.connect(self._browse_video)
-        row.addWidget(self._browse_video_btn)
-
-        layout.addLayout(row)
-
-        self._info_label = QLabel("")
-        self._info_label.setObjectName("dimText")
-        layout.addWidget(self._info_label)
-
-    def _browse(self):
-        folder = QFileDialog.getExistingDirectory(self, "Select Image Folder")
-        if folder:
-            self._path_edit.setText(folder)
-            self.folder_selected.emit(folder)
-
-    def _browse_video(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select Video File", "",
-            "Video Files (*.avi *.mp4 *.mov *.mkv);;All Files (*)",
+        self._folder_zone = _DropZone(
+            mode="folder",
+            icon="\U0001F4C1",  # folder emoji
+            prompt="Drop image\nfolder\nor click",
+            dialog_title="Select Image Folder",
         )
-        if path:
-            self._path_edit.setText(path)
-            self.video_selected.emit(path)
+        self._video_zone = _DropZone(
+            mode="video",
+            icon="\U0001F3AC",  # clapper-board emoji
+            prompt="Drop video\nfile\nor click",
+            dialog_title="Select Video File",
+            dialog_filter="Video Files (*.avi *.mp4 *.mov *.mkv);;All Files (*)",
+        )
+        zones_row.addWidget(self._folder_zone, 1)
+        zones_row.addWidget(self._video_zone, 1)
+        layout.addLayout(zones_row)
 
-    def set_info(self, text: str):
-        self._info_label.setText(text)
+        # Re-emit child signals through the public API
+        self._folder_zone.path_selected.connect(self.folder_selected)
+        self._video_zone.path_selected.connect(self.video_selected)
 
-    def set_path(self, path: str):
-        self._path_edit.setText(path)
+    # -- Public API used by FileController --
+
+    def set_folder_loaded(self, folder: str, count: int) -> None:
+        """Show a loaded folder in the folder zone; reset the video zone.
+
+        Only one source can be active at a time, so loading a folder
+        always clears any previously displayed video summary.
+        """
+        name = os.path.basename(folder.rstrip("/\\")) or folder
+        self._folder_zone.set_loaded([f"\u2713 {name}", f"{count} images"])
+        self._video_zone.reset()
+
+    def set_video_loaded(
+        self, video_path: str, frames: int, fps: float,
+    ) -> None:
+        """Show a loaded video in the video zone; reset the folder zone."""
+        name = os.path.basename(video_path)
+        self._video_zone.set_loaded(
+            [f"\u2713 {name}", f"{frames} fr  |  {fps:.1f} fps"],
+        )
+        self._folder_zone.reset()

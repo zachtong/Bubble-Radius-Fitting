@@ -159,6 +159,35 @@ QPushButton#invertMaskBtn:checked:hover {
     background: #60A5FA;
 }
 
+/* ---------- Drop zones (Image Source) ---------- */
+QWidget#dropZone {
+    background: #16171f;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    min-height: 80px;
+}
+QWidget#dropZone:hover {
+    background: #1a1b23;
+    border: 1px dashed #6366f1;
+}
+QWidget#dropZone[loaded="true"] {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid #10b981;
+}
+QWidget#dropZone[loaded="true"]:hover {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid #34d399;
+}
+QWidget#dropZone QLabel {
+    color: #a1a1aa;
+    background: transparent;
+    border: none;
+    font-size: 11px;
+}
+QWidget#dropZone[loaded="true"] QLabel {
+    color: #e4e4e7;
+}
+
 /* ---------- Sliders ---------- */
 QSlider::groove:horizontal {
     height: 6px;
