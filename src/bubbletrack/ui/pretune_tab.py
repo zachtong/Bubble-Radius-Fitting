@@ -18,6 +18,7 @@ class PreTuneTab(QWidget):
 
     # Signals
     threshold_changed = pyqtSignal(float)
+    invert_mask_changed = pyqtSignal(bool)
     removing_factor_changed = pyqtSignal(int)
     edges_changed = pyqtSignal()
     filters_changed = pyqtSignal()
@@ -70,6 +71,21 @@ class PreTuneTab(QWidget):
             lambda v: self.removing_factor_changed.emit(int(v))
         )
         layout.addWidget(self._removing_factor)
+
+        # -- Invert mask toggle --
+        # Conceptually a post-tuning step: only flip polarity once Threshold
+        # and Remove are dialed in. Performs a pure binary swap (white <-> black)
+        # so downstream detect_bubble always sees "interior dark, background bright".
+        self._invert_btn = QPushButton("Invert Mask")
+        self._invert_btn.setObjectName("invertMaskBtn")
+        self._invert_btn.setCheckable(True)
+        self._invert_btn.setToolTip(
+            "Pure binary swap: white pixels become black, black become white.\n"
+            "Use AFTER tuning Threshold and Remove, when the resulting binary\n"
+            "has inverted polarity (bubble interior bright, background dark)."
+        )
+        self._invert_btn.toggled.connect(self.invert_mask_changed)
+        layout.addWidget(self._invert_btn)
 
         # -- Edge checkboxes --
         edge_group = QGroupBox("Bubble crosses edge")
@@ -189,6 +205,15 @@ class PreTuneTab(QWidget):
         self._threshold.blockSignals(True)
         self._threshold.set_value(v * 100)
         self._threshold.blockSignals(False)
+
+    def get_invert_mask(self) -> bool:
+        return self._invert_btn.isChecked()
+
+    def set_invert_mask(self, v: bool) -> None:
+        """Set invert-mask toggle without emitting signals."""
+        self._invert_btn.blockSignals(True)
+        self._invert_btn.setChecked(bool(v))
+        self._invert_btn.blockSignals(False)
 
     def get_removing_factor_slider(self) -> int:
         return int(self._removing_factor.value())

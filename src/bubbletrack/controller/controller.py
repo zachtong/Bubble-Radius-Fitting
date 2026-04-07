@@ -148,6 +148,7 @@ class AppController:
         # Pre-tune
         pt = lp.pretune_tab
         pt.threshold_changed.connect(self.pretune_ctrl.on_threshold_changed)
+        pt.invert_mask_changed.connect(self.pretune_ctrl.on_invert_mask_changed)
         pt.removing_factor_changed.connect(self.pretune_ctrl.on_removing_factor_changed)
         pt.edges_changed.connect(self.pretune_ctrl.on_edges_changed)
         pt.fit_clicked.connect(self.pretune_ctrl.on_pretune_fit)

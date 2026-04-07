@@ -137,6 +137,28 @@ QPushButton#successBtn {
     background: #10b981;
 }
 
+/* Invert mask toggle — uses Figma blue (#3B82F6) when checked
+   to distinguish from default indigo buttons. Unchecked state
+   uses the secondary look. */
+QPushButton#invertMaskBtn {
+    background: #1a1b23;
+    color: #a1a1aa;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+QPushButton#invertMaskBtn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e4e4e7;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+QPushButton#invertMaskBtn:checked {
+    background: #3B82F6;
+    color: #ffffff;
+    border: 1px solid #2563EB;
+}
+QPushButton#invertMaskBtn:checked:hover {
+    background: #60A5FA;
+}
+
 /* ---------- Sliders ---------- */
 QSlider::groove:horizontal {
     height: 6px;

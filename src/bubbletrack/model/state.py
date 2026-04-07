@@ -58,6 +58,13 @@ class AppState:
     closing_radius: int = 0
     opening_radius: int = 0
 
+    # Visual binary polarity swap (session-only, NOT persisted across launches).
+    # When True, the binary panel displays ``~processed`` instead of
+    # ``processed``.  This is a pure post-detection display toggle: detection,
+    # circle fitting, and radius results are unaffected — only the rendered
+    # binary image is bit-flipped.
+    invert_mask: bool = False
+
     # Results arrays — allocated after folder is loaded.
     # Typed as object for frozen dataclass compatibility with NumPy.
     # Contents are mutable (element-level assignment), but field reassignment

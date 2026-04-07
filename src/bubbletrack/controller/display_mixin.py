@@ -21,7 +21,12 @@ from bubbletrack.ui.image_compare import CompareMode, create_overlay, create_wip
 
 
 def _build_cache_key(filepath: str, state: AppState) -> str:
-    """Build a cache key from filepath and processing parameters."""
+    """Build a cache key from filepath and processing parameters.
+
+    ``invert_mask`` is intentionally NOT part of the key: it is a pure
+    visual swap applied at display time (after detect_bubble), so the
+    cached binary is identical regardless of the toggle state.
+    """
     return (
         f"{filepath}:{state.img_thr}:{state.gridx}:{state.gridy}"
         f":{state.gaussian_sigma}:{state.clahe_clip}"
@@ -94,34 +99,40 @@ def display_frame(
         )
         set_state(state)
 
-        # Determine which binary image to show
-        if state.radius is not None and state.radius[idx] > 0:
-            rf = compute_removing_factor(
-                state.removing_factor,
-                state.gridx, state.gridy,
-            )
-            processed, edge_xy = detect_bubble(
-                binary_roi, state.bubble_cross_edges, rf,
-                state.gridx, state.gridy,
-                state.removing_obj_radius,
-                opening_radius=state.opening_radius,
-                closing_radius=state.closing_radius,
-            )
-            bin_display = processed
+        # Compute bin_display by running the full detect_bubble pipeline
+        # for ALL frames (fitted or not). Historical bug: the unfitted
+        # branch returned ~binary_roi without applying Removing Factor or
+        # morphology, so the binary panel was path-dependent — dragging
+        # threshold off and back gave a different visual than dragging RF
+        # off and back, even though both ended at the same (a, b) state.
+        rf = compute_removing_factor(
+            state.removing_factor,
+            state.gridx, state.gridy,
+        )
+        processed, edge_xy = detect_bubble(
+            binary_roi, state.bubble_cross_edges, rf,
+            state.gridx, state.gridy,
+            state.removing_obj_radius,
+            opening_radius=state.opening_radius,
+            closing_radius=state.closing_radius,
+        )
+        # Apply invert_mask as the final visual step — pure bit flip on the
+        # detect_bubble output, so the binary panel mirrors black<->white
+        # without affecting the detected edge points or radius.
+        bin_display = ~processed if state.invert_mask else processed
 
-            # Lazy recovery: when radius is known but circle params are
-            # missing (e.g. loaded from batch results), re-fit from the
-            # edge points we just detected.  Cost: one circle_fit_taubin
-            # per displayed frame, only when needed.
-            if (state.circle_fit_par is not None
-                    and not np.isfinite(state.circle_fit_par[idx]).all()
-                    and edge_xy.shape[0] >= 3):
-                rc, cc, _ = circle_fit_taubin(edge_xy)
-                state.circle_fit_par[idx] = [rc, cc]
-                if state.circle_xy is not None:
-                    state.circle_xy[idx] = edge_xy
-        else:
-            bin_display = ~binary_roi
+        # Lazy recovery: when radius is known but circle params are
+        # missing (e.g. loaded from batch results), re-fit from the
+        # edge points we just detected.  Cost: one circle_fit_taubin
+        # per displayed frame, only when needed.
+        if (state.radius is not None and state.radius[idx] > 0
+                and state.circle_fit_par is not None
+                and not np.isfinite(state.circle_fit_par[idx]).all()
+                and edge_xy.shape[0] >= 3):
+            rc, cc, _ = circle_fit_taubin(edge_xy)
+            state.circle_fit_par[idx] = [rc, cc]
+            if state.circle_xy is not None:
+                state.circle_xy[idx] = edge_xy
 
         # Render according to compare mode
         mode = window.compare_mode

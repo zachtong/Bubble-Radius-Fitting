@@ -180,9 +180,13 @@ class AutoController(BaseController):
         except Exception:
             pass
 
-        # Show binary result from worker (no disk I/O needed)
+        # Show binary result from worker (no disk I/O needed). Apply
+        # invert_mask as a pure visual swap — same convention as the
+        # display_frame / preview path so the binary panel behaves
+        # consistently across the auto-fit, manual fit, and idle views.
         if binary_roi is not None:
-            self.w.binary_panel.set_image(binary_roi)
+            bin_display = ~binary_roi if self.state.invert_mask else binary_roi
+            self.w.binary_panel.set_image(bin_display)
 
         # Update chart periodically (skip quality scoring for speed;
         # quality coloring is applied once in _on_auto_finished)

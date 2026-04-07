@@ -53,6 +53,16 @@ class PretuneController(BaseController):
             self._cache.invalidate()
         self._display_timer.start()  # debounced
 
+    def on_invert_mask_changed(self, enabled: bool) -> None:
+        """Toggle the visual binary polarity swap.
+
+        ``invert_mask`` is a pure post-detection display flag — it does not
+        change the cached binary, the detected edge points, or the fitted
+        radius.  We only need to re-render the binary panel.
+        """
+        self._update(invert_mask=enabled)
+        self._display_timer.start()  # debounced
+
     def on_removing_factor_changed(self, v: int) -> None:
         self._update(removing_factor=v)
         self._preview_timer.start()  # debounced
@@ -84,8 +94,9 @@ class PretuneController(BaseController):
     def preview_detection(self) -> None:
         """Run full detect_bubble pipeline for preview.
 
-        MATLAB's realtimeDisplay_connectedArea calls detectBubble with
-        removeobjradius=0 to skip morphological closing for speed.
+        Mirrors ``display_frame``'s rendering path so that toggling between
+        threshold and removing-factor sliders converges to the same binary
+        for the same ``(state, frame)`` — see tests/test_display_consistency.
 
         When only removing_factor changes, the cached binary_roi is reused
         to skip the expensive load_and_normalize step.
@@ -97,7 +108,7 @@ class PretuneController(BaseController):
             self.state.removing_factor, self.state.gridx, self.state.gridy,
         )
         try:
-            # Check if binary ROI can be reused (only RF or edges changed)
+            # Check if binary ROI can be reused (only RF or edges changed).
             current_params = (
                 self.state.images[idx],
                 self.state.img_thr,
@@ -122,11 +133,13 @@ class PretuneController(BaseController):
             processed, _ = detect_bubble(
                 binary_roi, self.state.bubble_cross_edges, rf,
                 self.state.gridx, self.state.gridy,
-                0,  # skip legacy morphological closing for preview speed
+                self.state.removing_obj_radius,
                 opening_radius=self.state.opening_radius,
                 closing_radius=self.state.closing_radius,
             )
-            self.w.binary_panel.set_image(processed)
+            # Apply invert_mask as the last visual step (matches display_frame).
+            bin_display = ~processed if self.state.invert_mask else processed
+            self.w.binary_panel.set_image(bin_display)
         except Exception:
             pass
 
@@ -176,7 +189,9 @@ class PretuneController(BaseController):
                 closing_radius=self.state.closing_radius,
             )
 
-            self.w.binary_panel.set_image(processed)
+            # Apply invert_mask as the last visual step (matches display_frame).
+            bin_display = ~processed if self.state.invert_mask else processed
+            self.w.binary_panel.set_image(bin_display)
 
             if edge_xy.shape[0] >= 3:
                 rc, cc, radius = circle_fit_taubin(edge_xy)

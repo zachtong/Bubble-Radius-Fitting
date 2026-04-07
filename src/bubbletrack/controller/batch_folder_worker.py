@@ -109,7 +109,8 @@ class BatchFolderWorker(QThread):
             circle_fit_par = np.full((n, 2), np.nan)
             circle_xy: list = [None] * n
 
-            # Build args for ProcessPoolExecutor
+            # Build args for ProcessPoolExecutor.  Tuple order MUST match
+            # bubbletrack.controller.worker._process_single_frame.
             all_args = [
                 (
                     i, images[i],
